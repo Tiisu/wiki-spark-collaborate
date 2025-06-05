@@ -4,6 +4,7 @@ import { validate, schemas } from '../middleware/validation.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
 import { AuthenticatedRequest } from '../types/index.js';
 import { UserRole } from '../models/User.js';
+import { courseController } from '../controllers/courseController.js';
 
 const router = Router();
 
@@ -38,17 +39,7 @@ const router = Router();
 router.get('/',
   optionalAuth,
   validate({ query: schemas.paginationQuery.extend(schemas.searchQuery.shape) }),
-  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    res.json({
-      success: true,
-      message: 'Course routes - Coming soon!',
-      data: {
-        endpoint: 'GET /api/courses',
-        query: req.query,
-        user: req.user ? 'Authenticated' : 'Anonymous'
-      }
-    });
-  })
+  asyncHandler(courseController.getCourses)
 );
 
 /**
@@ -67,13 +58,7 @@ router.post('/',
   authenticate,
   authorize(UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN),
   validate({ body: schemas.createCourse }),
-  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    res.status(201).json({
-      success: true,
-      message: 'Create course - Coming soon!',
-      data: { endpoint: 'POST /api/courses' }
-    });
-  })
+  asyncHandler(courseController.createCourse)
 );
 
 /**
@@ -95,13 +80,82 @@ router.post('/',
 router.get('/:id',
   optionalAuth,
   validate({ params: schemas.idParam }),
-  asyncHandler(async (req: Request, res: Response) => {
-    res.json({
-      success: true,
-      message: 'Get course by ID - Coming soon!',
-      data: { endpoint: `GET /api/courses/${req.params.id}` }
-    });
-  })
+  asyncHandler(courseController.getCourse)
+);
+
+/**
+ * @swagger
+ * /api/courses/{id}:
+ *   put:
+ *     summary: Update a course
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Course updated successfully
+ */
+router.put('/:id',
+  authenticate,
+  authorize(UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  validate({ params: schemas.idParam, body: schemas.updateCourse }),
+  asyncHandler(courseController.updateCourse)
+);
+
+/**
+ * @swagger
+ * /api/courses/{id}:
+ *   delete:
+ *     summary: Delete a course
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Course deleted successfully
+ */
+router.delete('/:id',
+  authenticate,
+  authorize(UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  validate({ params: schemas.idParam }),
+  asyncHandler(courseController.deleteCourse)
+);
+
+/**
+ * @swagger
+ * /api/courses/{id}/publish:
+ *   patch:
+ *     summary: Toggle course publish status
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Course publish status updated
+ */
+router.patch('/:id/publish',
+  authenticate,
+  authorize(UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  validate({ params: schemas.idParam }),
+  asyncHandler(courseController.togglePublish)
 );
 
 /**

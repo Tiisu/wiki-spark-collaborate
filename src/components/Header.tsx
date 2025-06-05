@@ -60,6 +60,13 @@ const Header = () => {
                     Dashboard
                   </Button>
                 </Link>
+                {user && ['ADMIN', 'SUPER_ADMIN'].includes(user.role) && (
+                  <Link to="/admin">
+                    <Button variant="outline" className="hidden sm:inline-flex">
+                      Admin Panel
+                    </Button>
+                  </Link>
+                )}
                 <Button variant="outline" onClick={handleLogout}>
                   <LogOut className="h-4 w-4 sm:mr-2" />
                   <span className="hidden sm:inline">Logout</span>
