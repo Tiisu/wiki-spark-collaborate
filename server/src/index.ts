@@ -65,8 +65,14 @@ const specs = swaggerJsdoc(swaggerOptions);
 
 // Middleware
 app.use(helmet());
+
+// Configure CORS to allow multiple origins
+const allowedOrigins = process.env.FRONTEND_URL
+  ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
+  : ['http://localhost:5173', 'http://localhost:8080'];
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: allowedOrigins,
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));

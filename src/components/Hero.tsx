@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Users, BookOpen, Globe } from 'lucide-react';
 
@@ -19,9 +20,11 @@ const Hero = () => {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg">
-              Start Learning <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
+            <Link to="/register">
+              <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg">
+                Start Learning <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
             <Button size="lg" variant="outline" className="px-8 py-4 text-lg border-slate-300">
               Explore Community
             </Button>

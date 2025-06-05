@@ -10,6 +10,7 @@ import {
 import { AppError } from '../middleware/errorHandler.js';
 import { AuthenticatedRequest, ApiResponse, CreateUserData, LoginData } from '../types/index.js';
 import { logger } from '../utils/logger.js';
+import { emailService } from '../services/emailService.js';
 
 class AuthController {
   /**
@@ -63,7 +64,15 @@ class AuthController {
     // Generate JWT token
     const token = generateToken({ id: user._id, email: user.email, role: user.role });
 
-    // TODO: Send verification email
+    // Send verification email
+    try {
+      await emailService.sendVerificationEmail(user.email, emailVerifyToken, user.firstName);
+      logger.info(`Verification email sent to: ${user.email}`);
+    } catch (error) {
+      logger.error('Failed to send verification email', { error, email: user.email });
+      // Don't fail registration if email fails, just log it
+    }
+
     logger.info(`User registered: ${user.email}`);
 
     const response: ApiResponse = {
@@ -175,7 +184,14 @@ class AuthController {
       passwordResetExpires: resetExpires,
     });
 
-    // TODO: Send password reset email
+    // Send password reset email
+    try {
+      await emailService.sendPasswordResetEmail(user.email, resetToken, user.firstName);
+      logger.info(`Password reset email sent to: ${email}`);
+    } catch (error) {
+      logger.error('Failed to send password reset email', { error, email });
+    }
+
     logger.info(`Password reset requested for: ${email}`);
 
     const response: ApiResponse = {
@@ -250,6 +266,14 @@ class AuthController {
       emailVerifyToken: null,
     });
 
+    // Send welcome email
+    try {
+      await emailService.sendWelcomeEmail(user.email, user.firstName);
+      logger.info(`Welcome email sent to: ${user.email}`);
+    } catch (error) {
+      logger.error('Failed to send welcome email', { error, email: user.email });
+    }
+
     logger.info(`Email verified for: ${user.email}`);
 
     const response: ApiResponse = {
@@ -275,7 +299,14 @@ class AuthController {
 
     await User.findByIdAndUpdate(user.id, { emailVerifyToken });
 
-    // TODO: Send verification email
+    // Send verification email
+    try {
+      await emailService.sendVerificationEmail(user.email, emailVerifyToken, user.firstName);
+      logger.info(`Verification email resent to: ${user.email}`);
+    } catch (error) {
+      logger.error('Failed to resend verification email', { error, email: user.email });
+    }
+
     logger.info(`Verification email resent for: ${user.email}`);
 
     const response: ApiResponse = {
