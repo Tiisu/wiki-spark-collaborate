@@ -104,21 +104,4 @@ export const optionalAuth = async (
   }
 };
 
-/**
- * Middleware to check if email is verified
- */
-export const requireEmailVerification = (
-  req: AuthenticatedRequest,
-  res: Response,
-  next: NextFunction
-): void => {
-  if (!req.user) {
-    throw new AppError('Authentication required', 401);
-  }
 
-  if (!req.user.isEmailVerified) {
-    throw new AppError('Email verification required', 403);
-  }
-
-  next();
-};

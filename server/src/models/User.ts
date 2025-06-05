@@ -21,8 +21,6 @@ export interface IUser extends Document {
   timezone?: string;
   preferredLanguage: string;
   role: UserRole;
-  isEmailVerified: boolean;
-  emailVerifyToken?: string;
   passwordResetToken?: string;
   passwordResetExpires?: Date;
   lastLoginAt?: Date;
@@ -82,14 +80,6 @@ const userSchema = new Schema<IUser>({
     type: String,
     enum: Object.values(UserRole),
     default: UserRole.LEARNER
-  },
-  isEmailVerified: {
-    type: Boolean,
-    default: false
-  },
-  emailVerifyToken: {
-    type: String,
-    default: null
   },
   passwordResetToken: {
     type: String,

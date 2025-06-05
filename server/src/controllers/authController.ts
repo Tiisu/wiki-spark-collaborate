@@ -45,9 +45,6 @@ class AuthController {
     // Hash password
     const hashedPassword = await hashPassword(userData.password);
 
-    // Generate email verification token
-    const emailVerifyToken = generateRandomToken();
-
     // Create user
     const user = await User.create({
       email: userData.email,
@@ -58,26 +55,16 @@ class AuthController {
       country: userData.country,
       timezone: userData.timezone,
       preferredLanguage: userData.preferredLanguage || 'en',
-      emailVerifyToken,
     });
 
     // Generate JWT token
     const token = generateToken({ id: user._id, email: user.email, role: user.role });
 
-    // Send verification email
-    try {
-      await emailService.sendVerificationEmail(user.email, emailVerifyToken, user.firstName);
-      logger.info(`Verification email sent to: ${user.email}`);
-    } catch (error) {
-      logger.error('Failed to send verification email', { error, email: user.email });
-      // Don't fail registration if email fails, just log it
-    }
-
     logger.info(`User registered: ${user.email}`);
 
     const response: ApiResponse = {
       success: true,
-      message: 'User registered successfully. Please check your email for verification.',
+      message: 'User registered successfully.',
       data: {
         user,
         token,
@@ -244,78 +231,9 @@ class AuthController {
     res.status(200).json(response);
   }
 
-  /**
-   * Verify email address
-   */
-  async verifyEmail(req: AuthenticatedRequest, res: Response): Promise<void> {
-    const { token } = req.params;
 
-    const user = await User.findOne({ emailVerifyToken: token });
 
-    if (!user) {
-      throw new AppError('Invalid verification token', 400);
-    }
 
-    if (user.isEmailVerified) {
-      throw new AppError('Email already verified', 400);
-    }
-
-    // Verify email
-    await User.findByIdAndUpdate(user._id, {
-      isEmailVerified: true,
-      emailVerifyToken: null,
-    });
-
-    // Send welcome email
-    try {
-      await emailService.sendWelcomeEmail(user.email, user.firstName);
-      logger.info(`Welcome email sent to: ${user.email}`);
-    } catch (error) {
-      logger.error('Failed to send welcome email', { error, email: user.email });
-    }
-
-    logger.info(`Email verified for: ${user.email}`);
-
-    const response: ApiResponse = {
-      success: true,
-      message: 'Email verified successfully',
-    };
-
-    res.status(200).json(response);
-  }
-
-  /**
-   * Resend email verification
-   */
-  async resendVerification(req: AuthenticatedRequest, res: Response): Promise<void> {
-    const user = req.user!;
-
-    if (user.isEmailVerified) {
-      throw new AppError('Email already verified', 400);
-    }
-
-    // Generate new verification token
-    const emailVerifyToken = generateRandomToken();
-
-    await User.findByIdAndUpdate(user.id, { emailVerifyToken });
-
-    // Send verification email
-    try {
-      await emailService.sendVerificationEmail(user.email, emailVerifyToken, user.firstName);
-      logger.info(`Verification email resent to: ${user.email}`);
-    } catch (error) {
-      logger.error('Failed to resend verification email', { error, email: user.email });
-    }
-
-    logger.info(`Verification email resent for: ${user.email}`);
-
-    const response: ApiResponse = {
-      success: true,
-      message: 'Verification email sent',
-    };
-
-    res.status(200).json(response);
-  }
 }
 
 export const authController = new AuthController();

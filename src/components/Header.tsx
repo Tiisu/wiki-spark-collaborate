@@ -53,11 +53,7 @@ const Header = () => {
                   <span className="text-slate-700 hidden sm:inline">
                     {user.firstName} {user.lastName}
                   </span>
-                  {!user.isEmailVerified && (
-                    <Badge variant="destructive" className="text-xs hidden sm:inline-flex">
-                      Unverified
-                    </Badge>
-                  )}
+
                 </div>
                 <Link to="/dashboard">
                   <Button variant="outline" className="hidden sm:inline-flex">

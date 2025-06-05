@@ -36,11 +36,7 @@ const Dashboard = () => {
               <div className="flex items-center space-x-2">
                 <User className="h-5 w-5 text-slate-600" />
                 <span className="text-slate-700">{user.firstName} {user.lastName}</span>
-                {!user.isEmailVerified && (
-                  <Badge variant="destructive" className="text-xs">
-                    Unverified
-                  </Badge>
-                )}
+
               </div>
               <Button variant="outline" onClick={handleLogout}>
                 <LogOut className="h-4 w-4 mr-2" />
@@ -64,22 +60,7 @@ const Dashboard = () => {
             </p>
           </div>
 
-          {/* Email Verification Alert */}
-          {!user.isEmailVerified && (
-            <div className="mb-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <div className="flex items-center space-x-2">
-                <div className="w-5 h-5 bg-yellow-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">!</span>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-yellow-800">Email Verification Required</h3>
-                  <p className="text-yellow-700 text-sm">
-                    Please verify your email address to access all features. Check your inbox for a verification link.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
+
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

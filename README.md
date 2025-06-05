@@ -116,17 +116,9 @@ A Wikimedia education platform that helps users learn to contribute effectively 
    - Strong password (with real-time validation)
    - Optional: Country and preferred language
 3. Form validates input client-side and server-side
-4. User account is created with `isEmailVerified: false`
-5. Verification email is sent automatically
+4. User account is created and can immediately access all features
 
-### 2. Email Verification
-1. User receives verification email with secure token
-2. Clicks verification link: `/verify-email?token=<token>`
-3. Backend verifies token and marks email as verified
-4. Welcome email is sent
-5. User can now access all platform features
-
-### 3. Login Process
+### 2. Login Process
 1. User visits `/login` page
 2. Enters email and password
 3. JWT token is generated and stored
@@ -138,8 +130,6 @@ A Wikimedia education platform that helps users learn to contribute effectively 
 - `POST /api/auth/register` - User registration
 - `POST /api/auth/login` - User login
 - `POST /api/auth/logout` - User logout
-- `GET /api/auth/verify-email/:token` - Email verification
-- `POST /api/auth/resend-verification` - Resend verification email
 - `POST /api/auth/forgot-password` - Request password reset
 - `POST /api/auth/reset-password` - Reset password with token
 - `GET /api/auth/me` - Get current user profile

@@ -137,11 +137,7 @@ export const authApi = {
     localStorage.removeItem('auth_token');
   },
 
-  verifyEmail: async (token: string): Promise<void> => {
-    await apiRequest(`/api/auth/verify-email/${token}`, {
-      method: 'GET',
-    });
-  },
+
 
   forgotPassword: async (email: string): Promise<void> => {
     await apiRequest('/api/auth/forgot-password', {

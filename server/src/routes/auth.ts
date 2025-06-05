@@ -250,41 +250,6 @@ router.post('/reset-password',
   asyncHandler(authController.resetPassword)
 );
 
-/**
- * @swagger
- * /api/auth/verify-email/{token}:
- *   get:
- *     summary: Verify email address
- *     tags: [Authentication]
- *     parameters:
- *       - in: path
- *         name: token
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Email verified successfully
- */
-router.get('/verify-email/:token',
-  asyncHandler(authController.verifyEmail)
-);
 
-/**
- * @swagger
- * /api/auth/resend-verification:
- *   post:
- *     summary: Resend email verification
- *     tags: [Authentication]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Verification email sent
- */
-router.post('/resend-verification',
-  authenticate,
-  asyncHandler(authController.resendVerification)
-);
 
 export default router;
