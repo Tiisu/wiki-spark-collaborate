@@ -16,6 +16,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import WikipediaEditorPage from "./pages/WikipediaEditorPage";
 import CourseViewer from "./pages/CourseViewer";
 import VideoTutorials from "./pages/VideoTutorials";
+import QuizDemo from "./pages/QuizDemo";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -84,6 +85,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <VideoTutorials />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/quiz-demo"
+                element={
+                  <ProtectedRoute>
+                    <QuizDemo />
                   </ProtectedRoute>
                 }
               />

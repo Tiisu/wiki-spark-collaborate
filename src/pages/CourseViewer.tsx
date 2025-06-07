@@ -7,17 +7,18 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { LessonViewer, LessonType } from '@/components/course/LessonViewer';
 import Header from '@/components/Header';
-import { 
-  BookOpen, 
-  Clock, 
-  Users, 
+import {
+  BookOpen,
+  Clock,
+  Users,
   Star,
   ChevronLeft,
   Play,
   CheckCircle,
   Video,
   FileText,
-  HelpCircle
+  HelpCircle,
+  Trophy
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -45,6 +46,25 @@ interface Module {
   lessons: Lesson[];
 }
 
+interface QuizData {
+  id: string;
+  title: string;
+  description?: string;
+  questions: any[];
+  passingScore: number;
+  timeLimit?: number;
+  lessonId: string;
+}
+
+interface QuizAttempt {
+  id: string;
+  answers: Record<string, string | string[]>;
+  score: number;
+  passed: boolean;
+  timeSpent: number;
+  createdAt: string;
+}
+
 interface Lesson {
   id: string;
   title: string;
@@ -56,6 +76,8 @@ interface Lesson {
   isCompleted: boolean;
   progress: number;
   moduleId: string;
+  quiz?: QuizData;
+  quizAttempt?: QuizAttempt;
   resources?: {
     title: string;
     url: string;
@@ -108,6 +130,46 @@ const CourseViewer = () => {
                 isCompleted: true,
                 progress: 100,
                 moduleId: 'module-1',
+                quiz: {
+                  id: 'quiz-1',
+                  title: 'Wikipedia Basics Quiz',
+                  description: 'Test your understanding of Wikipedia fundamentals',
+                  passingScore: 70,
+                  timeLimit: 10,
+                  lessonId: 'lesson-1',
+                  questions: [
+                    {
+                      id: 'q1',
+                      question: 'What is Wikipedia?',
+                      type: 'multiple_choice',
+                      options: [
+                        'A paid encyclopedia service',
+                        'A free, open-content encyclopedia',
+                        'A social media platform',
+                        'A news website'
+                      ],
+                      correctAnswer: 'A free, open-content encyclopedia',
+                      explanation: 'Wikipedia is indeed a free, open-content encyclopedia that anyone can edit.',
+                      points: 10
+                    },
+                    {
+                      id: 'q2',
+                      question: 'Can anyone edit Wikipedia articles?',
+                      type: 'true_false',
+                      correctAnswer: 'True',
+                      explanation: 'Yes, Wikipedia is designed to be editable by anyone, though some articles may have protection levels.',
+                      points: 10
+                    }
+                  ]
+                },
+                quizAttempt: {
+                  id: 'attempt-1',
+                  answers: { 'q1': 'A free, open-content encyclopedia', 'q2': 'True' },
+                  score: 100,
+                  passed: true,
+                  timeSpent: 120,
+                  createdAt: '2024-01-20T10:00:00Z'
+                },
                 resources: [
                   {
                     title: 'Wikipedia Policies Overview',
@@ -137,7 +199,39 @@ const CourseViewer = () => {
                 order: 3,
                 isCompleted: false,
                 progress: 60,
-                moduleId: 'module-1'
+                moduleId: 'module-1',
+                quiz: {
+                  id: 'quiz-3',
+                  title: 'Wikipedia Policies Quiz',
+                  description: 'Test your knowledge of Wikipedia\'s core policies',
+                  passingScore: 80,
+                  timeLimit: 15,
+                  lessonId: 'lesson-3',
+                  questions: [
+                    {
+                      id: 'q1',
+                      question: 'Which of the following are core Wikipedia policies? (Select all that apply)',
+                      type: 'multiple_select',
+                      options: [
+                        'Neutral Point of View (NPOV)',
+                        'Verifiability',
+                        'No Original Research',
+                        'Be Bold'
+                      ],
+                      correctAnswer: ['Neutral Point of View (NPOV)', 'Verifiability', 'No Original Research'],
+                      explanation: 'The three core content policies are NPOV, Verifiability, and No Original Research. "Be Bold" is a guideline, not a policy.',
+                      points: 15
+                    },
+                    {
+                      id: 'q2',
+                      question: 'What does "Verifiability" mean in Wikipedia?',
+                      type: 'short_answer',
+                      correctAnswer: 'Information must be supported by reliable sources',
+                      explanation: 'Verifiability means that information in Wikipedia must be supported by reliable, published sources.',
+                      points: 10
+                    }
+                  ]
+                }
               }
             ]
           },
@@ -222,6 +316,34 @@ const CourseViewer = () => {
 
   const handleLessonComplete = (lessonId: string) => {
     completeLessonMutation.mutate(lessonId);
+  };
+
+  const handleQuizComplete = (lessonId: string, attempt: QuizAttempt) => {
+    // Mock API call to save quiz attempt
+    console.log('Quiz completed for lesson:', lessonId, 'Attempt:', attempt);
+
+    // Update the lesson's quiz attempt in the cache
+    queryClient.setQueryData(['course', courseId], (oldData: any) => {
+      if (!oldData) return oldData;
+
+      const updatedModules = oldData.modules.map((module: any) => ({
+        ...module,
+        lessons: module.lessons.map((lesson: any) =>
+          lesson.id === lessonId
+            ? { ...lesson, quizAttempt: attempt }
+            : lesson
+        )
+      }));
+
+      return { ...oldData, modules: updatedModules };
+    });
+
+    toast({
+      title: attempt.passed ? 'Quiz passed!' : 'Quiz completed',
+      description: attempt.passed
+        ? `Great job! You scored ${attempt.score}%`
+        : `You scored ${attempt.score}%. You need ${course?.modules.find(m => m.lessons.find(l => l.id === lessonId))?.lessons.find(l => l.id === lessonId)?.quiz?.passingScore}% to pass.`,
+    });
   };
 
   const handleNextLesson = () => {
@@ -358,6 +480,13 @@ const CourseViewer = () => {
                             <div className="flex items-center space-x-2">
                               {getLessonIcon(lesson.type)}
                               <span className="text-sm font-medium truncate">{lesson.title}</span>
+                              {lesson.quiz && (
+                                <Trophy className={`h-3 w-3 flex-shrink-0 ${
+                                  lesson.quizAttempt?.passed
+                                    ? 'text-green-600'
+                                    : 'text-muted-foreground'
+                                }`} />
+                              )}
                             </div>
                             {lesson.isCompleted && (
                               <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
@@ -366,6 +495,11 @@ const CourseViewer = () => {
                           {lesson.duration && (
                             <div className="text-xs text-muted-foreground mt-1">
                               {lesson.duration}m
+                              {lesson.quiz && (
+                                <span className="ml-2">
+                                  • Quiz: {lesson.quizAttempt?.passed ? 'Passed' : 'Required'}
+                                </span>
+                              )}
                             </div>
                           )}
                           {lesson.progress > 0 && lesson.progress < 100 && (
@@ -387,6 +521,7 @@ const CourseViewer = () => {
                 lesson={selectedLesson}
                 onComplete={handleLessonComplete}
                 onProgress={handleLessonProgress}
+                onQuizComplete={handleQuizComplete}
                 onNext={selectedLessonIndex < allLessons.length - 1 ? handleNextLesson : undefined}
                 onPrevious={selectedLessonIndex > 0 ? handlePreviousLesson : undefined}
                 hasNext={selectedLessonIndex < allLessons.length - 1}

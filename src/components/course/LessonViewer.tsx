@@ -4,17 +4,20 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { VideoPlayer } from '@/components/ui/video-player';
-import { 
-  Play, 
-  CheckCircle, 
-  Clock, 
-  BookOpen, 
+import { QuizModal } from '@/components/quiz/QuizModal';
+import { QuizQuestion } from '@/components/quiz/QuizQuestion';
+import {
+  Play,
+  CheckCircle,
+  Clock,
+  BookOpen,
   FileText,
   Video,
   HelpCircle,
   ChevronLeft,
   ChevronRight,
-  Download
+  Download,
+  Trophy
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -24,6 +27,25 @@ export enum LessonType {
   INTERACTIVE = 'INTERACTIVE',
   QUIZ = 'QUIZ',
   ASSIGNMENT = 'ASSIGNMENT'
+}
+
+interface QuizData {
+  id: string;
+  title: string;
+  description?: string;
+  questions: QuizQuestion[];
+  passingScore: number;
+  timeLimit?: number;
+  lessonId: string;
+}
+
+interface QuizAttempt {
+  id: string;
+  answers: Record<string, string | string[]>;
+  score: number;
+  passed: boolean;
+  timeSpent: number;
+  createdAt: string;
 }
 
 interface Lesson {
@@ -36,6 +58,8 @@ interface Lesson {
   order: number;
   isCompleted: boolean;
   progress: number;
+  quiz?: QuizData;
+  quizAttempt?: QuizAttempt;
   resources?: {
     title: string;
     url: string;
@@ -47,6 +71,7 @@ interface LessonViewerProps {
   lesson: Lesson;
   onComplete: (lessonId: string) => void;
   onProgress: (lessonId: string, progress: number) => void;
+  onQuizComplete?: (lessonId: string, attempt: QuizAttempt) => void;
   onNext?: () => void;
   onPrevious?: () => void;
   hasNext?: boolean;
@@ -58,6 +83,7 @@ export function LessonViewer({
   lesson,
   onComplete,
   onProgress,
+  onQuizComplete,
   onNext,
   onPrevious,
   hasNext,
@@ -67,6 +93,8 @@ export function LessonViewer({
   const [currentProgress, setCurrentProgress] = useState(lesson.progress);
   const [isCompleted, setIsCompleted] = useState(lesson.isCompleted);
   const [videoProgress, setVideoProgress] = useState(0);
+  const [showQuizModal, setShowQuizModal] = useState(false);
+  const [quizAttempt, setQuizAttempt] = useState<QuizAttempt | undefined>(lesson.quizAttempt);
 
   useEffect(() => {
     setCurrentProgress(lesson.progress);
@@ -94,7 +122,40 @@ export function LessonViewer({
   const handleComplete = () => {
     setIsCompleted(true);
     setCurrentProgress(100);
-    onComplete(lesson.id);
+
+    // Show quiz modal if lesson has a quiz and it hasn't been passed yet
+    if (lesson.quiz && (!quizAttempt || !quizAttempt.passed)) {
+      setShowQuizModal(true);
+    } else {
+      onComplete(lesson.id);
+    }
+  };
+
+  const handleQuizComplete = (attempt: QuizAttempt) => {
+    setQuizAttempt(attempt);
+    if (onQuizComplete) {
+      onQuizComplete(lesson.id, attempt);
+    }
+
+    // Complete the lesson if quiz is passed
+    if (attempt.passed) {
+      onComplete(lesson.id);
+    }
+  };
+
+  const handleQuizModalClose = () => {
+    setShowQuizModal(false);
+    // If quiz was passed, complete the lesson
+    if (quizAttempt?.passed) {
+      onComplete(lesson.id);
+    }
+  };
+
+  const handleProceedToNext = () => {
+    setShowQuizModal(false);
+    if (onNext) {
+      onNext();
+    }
   };
 
   const getLessonIcon = (type: LessonType) => {
@@ -152,6 +213,20 @@ export function LessonViewer({
                   <Badge variant="outline" className="flex items-center space-x-1">
                     <Clock className="h-3 w-3" />
                     <span>{formatDuration(lesson.duration)}</span>
+                  </Badge>
+                )}
+                {lesson.quiz && (
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "flex items-center space-x-1",
+                      quizAttempt?.passed && "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
+                    )}
+                  >
+                    <Trophy className="h-3 w-3" />
+                    <span>
+                      {quizAttempt?.passed ? 'Quiz Passed' : 'Has Quiz'}
+                    </span>
                   </Badge>
                 )}
                 {isCompleted && (
@@ -257,15 +332,25 @@ export function LessonViewer({
             </div>
 
             <div className="flex space-x-2">
-              {!isCompleted && lesson.type !== LessonType.VIDEO && (
+              {lesson.quiz && (
+                <Button
+                  variant={quizAttempt?.passed ? "outline" : "default"}
+                  onClick={() => setShowQuizModal(true)}
+                >
+                  <Trophy className="h-4 w-4 mr-2" />
+                  {quizAttempt?.passed ? 'Review Quiz' : quizAttempt ? 'Retake Quiz' : 'Take Quiz'}
+                </Button>
+              )}
+
+              {!isCompleted && lesson.type !== LessonType.VIDEO && !lesson.quiz && (
                 <Button onClick={handleComplete}>
                   <CheckCircle className="h-4 w-4 mr-2" />
                   Mark as Complete
                 </Button>
               )}
-              
+
               {hasNext && (
-                <Button onClick={onNext}>
+                <Button onClick={onNext} disabled={lesson.quiz && !quizAttempt?.passed}>
                   Next Lesson
                   <ChevronRight className="h-4 w-4 ml-2" />
                 </Button>
@@ -274,6 +359,19 @@ export function LessonViewer({
           </div>
         </CardContent>
       </Card>
+
+      {/* Quiz Modal */}
+      {lesson.quiz && (
+        <QuizModal
+          isOpen={showQuizModal}
+          onClose={handleQuizModalClose}
+          quiz={lesson.quiz}
+          lessonTitle={lesson.title}
+          onQuizComplete={handleQuizComplete}
+          onProceedToNext={hasNext ? handleProceedToNext : undefined}
+          previousAttempt={quizAttempt}
+        />
+      )}
     </div>
   );
 }
