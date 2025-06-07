@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   BookOpen,
@@ -49,16 +50,16 @@ const Header = () => {
   ];
 
   return (
-    <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50">
+    <header className="bg-background/80 backdrop-blur-md border-b border-border sticky top-0 z-50">
       <div className="container mx-auto px-4 py-3 lg:py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2 flex-shrink-0">
             <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
-            <span className="text-lg sm:text-2xl font-bold text-slate-800 hidden xs:block">
+            <span className="text-lg sm:text-2xl font-bold text-foreground hidden xs:block">
               WikiWalkthrough
             </span>
-            <span className="text-lg font-bold text-slate-800 xs:hidden">
+            <span className="text-lg font-bold text-foreground xs:hidden">
               WWT
             </span>
           </Link>
@@ -69,7 +70,7 @@ const Header = () => {
               <a
                 key={item.href}
                 href={item.href}
-                className="flex items-center space-x-2 text-slate-600 hover:text-blue-600 transition-colors duration-200 group"
+                className="flex items-center space-x-2 text-muted-foreground hover:text-blue-600 transition-colors duration-200 group"
               >
                 <item.icon className="h-4 w-4 group-hover:scale-110 transition-transform duration-200" />
                 <span className="font-medium">{item.label}</span>
@@ -79,6 +80,8 @@ const Header = () => {
 
           {/* User Menu & Actions */}
           <div className="flex items-center space-x-2 sm:space-x-4">
+            {/* Theme Toggle */}
+            <ThemeToggle />
             {isAuthenticated && user ? (
               <>
                 {/* Desktop User Menu */}
@@ -109,16 +112,16 @@ const Header = () => {
                       <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
                         <User className="h-4 w-4 text-white" />
                       </div>
-                      <span className="hidden sm:block text-slate-700 font-medium">
+                      <span className="hidden sm:block text-foreground font-medium">
                         {user.firstName}
                       </span>
-                      <ChevronDown className="h-4 w-4 text-slate-500" />
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
                     <div className="px-3 py-2">
                       <p className="text-sm font-medium">{user.firstName} {user.lastName}</p>
-                      <p className="text-xs text-slate-500">{user.email}</p>
+                      <p className="text-xs text-muted-foreground">{user.email}</p>
                     </div>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild className="lg:hidden">
@@ -174,6 +177,12 @@ const Header = () => {
               </SheetTrigger>
               <SheetContent side="right" className="w-80">
                 <div className="flex flex-col space-y-6 mt-6">
+                  {/* Mobile Theme Toggle */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Theme</span>
+                    <ThemeToggle />
+                  </div>
+
                   {/* Mobile Navigation */}
                   <nav className="space-y-4">
                     {navigationItems.map((item) => (
@@ -181,7 +190,7 @@ const Header = () => {
                         key={item.href}
                         href={item.href}
                         onClick={() => setMobileMenuOpen(false)}
-                        className="flex items-center space-x-3 text-slate-600 hover:text-blue-600 transition-colors p-2 rounded-lg hover:bg-slate-50"
+                        className="flex items-center space-x-3 text-muted-foreground hover:text-blue-600 transition-colors p-2 rounded-lg hover:bg-muted"
                       >
                         <item.icon className="h-5 w-5" />
                         <span className="font-medium">{item.label}</span>

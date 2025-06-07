@@ -37,18 +37,18 @@ const UpcomingEvents = () => {
   ];
 
   return (
-    <section id="events" className="py-20 px-4 bg-slate-50">
+    <section id="events" className="py-20 px-4 bg-muted/50">
       <div className="container mx-auto">
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-slate-800 mb-4">Upcoming Events</h2>
-          <p className="text-xl text-slate-600 max-w-3xl mx-auto">
+          <h2 className="text-4xl font-bold text-foreground mb-4">Upcoming Events</h2>
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
             Join live workshops, edit-a-thons, and community gatherings to accelerate your learning and connect with fellow contributors.
           </p>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
           {events.map((event, index) => (
-            <Card key={index} className="hover:shadow-xl transition-all duration-300 group border-slate-200">
+            <Card key={index} className="hover:shadow-xl transition-all duration-300 group">
               <CardHeader>
                 <div className="flex items-start justify-between mb-3">
                   <Badge variant="secondary" className="text-xs">
@@ -58,31 +58,31 @@ const UpcomingEvents = () => {
                     {event.type}
                   </Badge>
                 </div>
-                <CardTitle className="text-xl font-bold text-slate-800 group-hover:text-blue-600 transition-colors">
+                <CardTitle className="text-xl font-bold text-foreground group-hover:text-blue-600 transition-colors">
                   {event.title}
                 </CardTitle>
-                <CardDescription className="text-slate-600">
+                <CardDescription className="text-muted-foreground">
                   {event.description}
                 </CardDescription>
               </CardHeader>
               
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <div className="flex items-center space-x-2 text-sm text-slate-600">
+                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                     <Calendar className="h-4 w-4 text-blue-600" />
                     <span>{event.date}</span>
                   </div>
-                  <div className="flex items-center space-x-2 text-sm text-slate-600">
+                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                     <Clock className="h-4 w-4 text-green-600" />
                     <span>{event.time}</span>
                   </div>
-                  <div className="flex items-center space-x-2 text-sm text-slate-600">
+                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                     <Users className="h-4 w-4 text-purple-600" />
                     <span>{event.participants} registered</span>
                   </div>
                 </div>
-                
-                <Button className="w-full bg-slate-800 hover:bg-slate-700 group">
+
+                <Button className="w-full group">
                   Register Now
                   <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                 </Button>
@@ -92,7 +92,7 @@ const UpcomingEvents = () => {
         </div>
         
         <div className="text-center">
-          <Button variant="outline" size="lg" className="border-slate-300 hover:bg-slate-50">
+          <Button variant="outline" size="lg">
             View All Events <Calendar className="ml-2 h-5 w-5" />
           </Button>
         </div>

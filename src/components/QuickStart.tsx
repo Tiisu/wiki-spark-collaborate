@@ -36,8 +36,8 @@ const QuickStart = () => {
     <section className="py-20 px-4">
       <div className="container mx-auto">
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-slate-800 mb-4">Get Started in Minutes</h2>
-          <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+          <h2 className="text-4xl font-bold text-foreground mb-4">Get Started in Minutes</h2>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             Your journey to becoming a confident Wikipedia contributor starts with just four simple steps.
           </p>
         </div>
@@ -50,13 +50,13 @@ const QuickStart = () => {
                   {step.step}
                 </div>
                 <CardHeader className="pt-6">
-                  <CardTitle className="text-lg font-bold text-slate-800 group-hover:text-blue-600 transition-colors">
+                  <CardTitle className="text-lg font-bold text-foreground group-hover:text-blue-600 transition-colors">
                     {step.title}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-slate-600 text-sm mb-4">{step.description}</p>
-                  <div className="flex items-center space-x-2 text-xs text-slate-500">
+                  <p className="text-muted-foreground text-sm mb-4">{step.description}</p>
+                  <div className="flex items-center space-x-2 text-xs text-muted-foreground">
                     <CheckCircle className="h-3 w-3 text-green-500" />
                     <span>{step.time}</span>
                   </div>
@@ -66,7 +66,7 @@ const QuickStart = () => {
           </div>
           
           <div className="text-center">
-            <Button size="lg" className="bg-slate-800 hover:bg-slate-700 text-white px-8">
+            <Button size="lg" className="px-8">
               <Play className="mr-2 h-5 w-5" />
               Start Your Journey
             </Button>

@@ -75,13 +75,13 @@ const ResetPassword = () => {
   // If no token, show error
   if (!token) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-        <header className="bg-white/80 backdrop-blur-md border-b border-slate-200">
+      <div className="min-h-screen bg-gradient-to-br from-background to-muted">
+        <header className="bg-background/80 backdrop-blur-md border-b border-border">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-center">
               <Link to="/" className="flex items-center space-x-2">
                 <BookOpen className="h-8 w-8 text-blue-600" />
-                <span className="text-2xl font-bold text-slate-800">WikiWalkthrough</span>
+                <span className="text-2xl font-bold text-foreground">WikiWalkthrough</span>
               </Link>
             </div>
           </div>
@@ -122,14 +122,14 @@ const ResetPassword = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-slate-200">
+      <header className="bg-background/80 backdrop-blur-md border-b border-border">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-center">
             <Link to="/" className="flex items-center space-x-2">
               <BookOpen className="h-8 w-8 text-blue-600" />
-              <span className="text-2xl font-bold text-slate-800">WikiWalkthrough</span>
+              <span className="text-2xl font-bold text-foreground">WikiWalkthrough</span>
             </Link>
           </div>
         </div>

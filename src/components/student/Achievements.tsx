@@ -317,8 +317,8 @@ const Achievements = () => {
               <Card 
                 key={achievement.id} 
                 className={`transition-all duration-200 ${
-                  achievement.isUnlocked 
-                    ? 'bg-gradient-to-br from-white to-green-50 border-green-200' 
+                  achievement.isUnlocked
+                    ? 'bg-gradient-to-br from-card to-green-50 dark:to-green-900/20 border-green-200 dark:border-green-800'
                     : 'opacity-75'
                 }`}
               >

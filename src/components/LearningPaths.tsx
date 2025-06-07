@@ -15,7 +15,7 @@ const LearningPaths = () => {
       modules: 8,
       icon: BookOpen,
       color: "text-blue-600",
-      bgColor: "bg-blue-50",
+      bgColor: "bg-blue-50 dark:bg-blue-900/20",
       features: ["Basic editing", "Citation guidelines", "Neutral point of view", "Notability criteria"]
     },
     {
@@ -26,7 +26,7 @@ const LearningPaths = () => {
       modules: 12,
       icon: Users,
       color: "text-green-600",
-      bgColor: "bg-green-50",
+      bgColor: "bg-green-50 dark:bg-green-900/20",
       features: ["Content disputes", "Deletion processes", "Copyright compliance", "Community guidelines"]
     },
     {
@@ -37,7 +37,7 @@ const LearningPaths = () => {
       modules: 10,
       icon: Database,
       color: "text-purple-600",
-      bgColor: "bg-purple-50",
+      bgColor: "bg-purple-50 dark:bg-purple-900/20",
       features: ["Wikidata editing", "Image guidelines", "File uploads", "Cross-project integration"]
     }
   ];
@@ -46,8 +46,8 @@ const LearningPaths = () => {
     <section id="learning" className="py-20 px-4">
       <div className="container mx-auto">
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-slate-800 mb-4">Choose Your Learning Path</h2>
-          <p className="text-xl text-slate-600 max-w-3xl mx-auto">
+          <h2 className="text-4xl font-bold text-foreground mb-4">Choose Your Learning Path</h2>
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
             Progress through carefully designed curricula that take you from Wikipedia novice to confident contributor.
           </p>
         </div>
@@ -67,16 +67,16 @@ const LearningPaths = () => {
                       {path.level}
                     </Badge>
                   </div>
-                  <CardTitle className="text-xl font-bold text-slate-800 group-hover:text-blue-600 transition-colors">
+                  <CardTitle className="text-xl font-bold text-foreground group-hover:text-blue-600 transition-colors">
                     {path.title}
                   </CardTitle>
-                  <CardDescription className="text-slate-600">
+                  <CardDescription className="text-muted-foreground">
                     {path.description}
                   </CardDescription>
                 </CardHeader>
-                
+
                 <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between text-sm text-slate-500">
+                  <div className="flex items-center justify-between text-sm text-muted-foreground">
                     <div className="flex items-center space-x-1">
                       <Clock className="h-4 w-4" />
                       <span>{path.duration}</span>
@@ -86,17 +86,17 @@ const LearningPaths = () => {
                       <span>{path.modules} modules</span>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-2">
                     {path.features.map((feature, featureIndex) => (
-                      <div key={featureIndex} className="flex items-center space-x-2 text-sm text-slate-600">
+                      <div key={featureIndex} className="flex items-center space-x-2 text-sm text-muted-foreground">
                         <Star className="h-3 w-3 text-yellow-500" />
                         <span>{feature}</span>
                       </div>
                     ))}
                   </div>
-                  
-                  <Button className="w-full mt-6 bg-slate-800 hover:bg-slate-700">
+
+                  <Button className="w-full mt-6">
                     Start Path
                   </Button>
                 </CardContent>

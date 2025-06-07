@@ -169,13 +169,13 @@ const EnrolledCourses = () => {
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
       case 'Beginner':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400';
       case 'Intermediate':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-400';
       case 'Advanced':
-        return 'bg-red-100 text-red-800';
+        return 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-400';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-100 dark:bg-gray-900/20 text-gray-800 dark:text-gray-400';
     }
   };
 
@@ -191,8 +191,8 @@ const EnrolledCourses = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-slate-800">My Courses</h2>
-          <p className="text-sm text-slate-600">
+          <h2 className="text-xl sm:text-2xl font-bold text-foreground">My Courses</h2>
+          <p className="text-sm text-muted-foreground">
             {courses.length} course{courses.length !== 1 ? 's' : ''} enrolled
           </p>
         </div>

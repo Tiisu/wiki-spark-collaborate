@@ -11,7 +11,7 @@ const CommunityFeatures = () => {
       description: "Join coordinated efforts to enhance specific Wikipedia articles with fellow contributors.",
       icon: Zap,
       color: "text-orange-600",
-      bgColor: "bg-orange-50",
+      bgColor: "bg-orange-50 dark:bg-orange-900/20",
       stats: "50+ active drives"
     },
     {
@@ -19,7 +19,7 @@ const CommunityFeatures = () => {
       description: "Get paired with experienced Wikipedia editors for personalized guidance and support.",
       icon: Users,
       color: "text-blue-600",
-      bgColor: "bg-blue-50",
+      bgColor: "bg-blue-50 dark:bg-blue-900/20",
       stats: "200+ mentors"
     },
     {
@@ -27,7 +27,7 @@ const CommunityFeatures = () => {
       description: "Help bridge language gaps by participating in collaborative translation initiatives.",
       icon: Globe,
       color: "text-green-600",
-      bgColor: "bg-green-50",
+      bgColor: "bg-green-50 dark:bg-green-900/20",
       stats: "30+ languages"
     },
     {
@@ -35,17 +35,17 @@ const CommunityFeatures = () => {
       description: "Engage in discussions, ask questions, and share knowledge with the global community.",
       icon: MessageCircle,
       color: "text-purple-600",
-      bgColor: "bg-purple-50",
+      bgColor: "bg-purple-50 dark:bg-purple-900/20",
       stats: "10k+ members"
     }
   ];
 
   return (
-    <section id="community" className="py-20 px-4 bg-white/40">
+    <section id="community" className="py-20 px-4 bg-muted/40">
       <div className="container mx-auto">
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-slate-800 mb-4">Thrive in Our Community</h2>
-          <p className="text-xl text-slate-600 max-w-3xl mx-auto">
+          <h2 className="text-4xl font-bold text-foreground mb-4">Thrive in Our Community</h2>
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
             Connect, collaborate, and grow with thousands of passionate Wikipedia contributors from around the world.
           </p>
         </div>
@@ -54,15 +54,15 @@ const CommunityFeatures = () => {
           {features.map((feature, index) => {
             const IconComponent = feature.icon;
             return (
-              <Card key={index} className="text-center hover:shadow-lg transition-all duration-300 group border-slate-200">
+              <Card key={index} className="text-center hover:shadow-lg transition-all duration-300 group">
                 <CardHeader className="pb-4">
                   <div className={`w-16 h-16 mx-auto rounded-full ${feature.bgColor} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
                     <IconComponent className={`h-8 w-8 ${feature.color}`} />
                   </div>
-                  <CardTitle className="text-lg font-bold text-slate-800">
+                  <CardTitle className="text-lg font-bold text-foreground">
                     {feature.title}
                   </CardTitle>
-                  <CardDescription className="text-slate-600 text-sm">
+                  <CardDescription className="text-muted-foreground text-sm">
                     {feature.description}
                   </CardDescription>
                 </CardHeader>
