@@ -1,21 +1,37 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { BookOpen, Users, Award, Clock, LogOut, User } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  BookOpen,
+  Users,
+  Award,
+  Clock,
+  LogOut,
+  User,
+  TrendingUp,
+  Target,
+  Calendar,
+  Star,
+  Play,
+  CheckCircle,
+  BarChart3
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-const Dashboard = () => {
-  const { user, logout } = useAuth();
+import Header from '@/components/Header';
+import StudentProgress from '@/components/student/StudentProgress';
+import EnrolledCourses from '@/components/student/EnrolledCourses';
+import LearningPath from '@/components/student/LearningPath';
+import Achievements from '@/components/student/Achievements';
+import StudyPlan from '@/components/student/StudyPlan';
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (error) {
-      console.error('Logout failed:', error);
-    }
-  };
+const Dashboard = () => {
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState('overview');
 
   if (!user) {
     return null; // This should be handled by ProtectedRoute
@@ -23,142 +39,95 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-slate-200">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link to="/" className="flex items-center space-x-2">
-              <BookOpen className="h-8 w-8 text-blue-600" />
-              <span className="text-2xl font-bold text-slate-800">WikiWalkthrough</span>
-            </Link>
-            
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <User className="h-5 w-5 text-slate-600" />
-                <span className="text-slate-700">{user.firstName} {user.lastName}</span>
+      <Header />
 
-              </div>
-              <Button variant="outline" onClick={handleLogout}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </Button>
+      <main className="container mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
+        {/* Welcome Section */}
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-2">
+                Welcome back, {user.firstName}! 👋
+              </h1>
+              <p className="text-sm sm:text-base text-slate-600">
+                Continue your Wikipedia education journey and track your progress.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="flex items-center gap-1">
+                <Star className="h-3 w-3" />
+                <span className="hidden sm:inline">Level 1 Learner</span>
+                <span className="sm:hidden">Lvl 1</span>
+              </Badge>
             </div>
           </div>
         </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto">
-          {/* Welcome Section */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-slate-800 mb-2">
-              Welcome back, {user.firstName}!
-            </h1>
-            <p className="text-slate-600">
-              Continue your Wikipedia education journey and track your progress.
-            </p>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
+          {/* Mobile Tab Navigation */}
+          <div className="block sm:hidden">
+            <Select value={activeTab} onValueChange={setActiveTab}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a section" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="overview">📊 Overview</SelectItem>
+                <SelectItem value="courses">📚 My Courses</SelectItem>
+                <SelectItem value="progress">📈 Progress</SelectItem>
+                <SelectItem value="learning-path">🎯 Learning Path</SelectItem>
+                <SelectItem value="achievements">🏆 Achievements</SelectItem>
+                <SelectItem value="study-plan">📅 Study Plan</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
+          {/* Desktop Tab Navigation */}
+          <TabsList className="hidden sm:grid w-full grid-cols-3 lg:grid-cols-6 h-auto p-1">
+            <TabsTrigger value="overview" className="text-xs sm:text-sm py-2">
+              <span className="hidden lg:inline">📊 </span>Overview
+            </TabsTrigger>
+            <TabsTrigger value="courses" className="text-xs sm:text-sm py-2">
+              <span className="hidden lg:inline">📚 </span>Courses
+            </TabsTrigger>
+            <TabsTrigger value="progress" className="text-xs sm:text-sm py-2">
+              <span className="hidden lg:inline">📈 </span>Progress
+            </TabsTrigger>
+            <TabsTrigger value="learning-path" className="text-xs sm:text-sm py-2">
+              <span className="hidden lg:inline">🎯 </span>Path
+            </TabsTrigger>
+            <TabsTrigger value="achievements" className="text-xs sm:text-sm py-2">
+              <span className="hidden lg:inline">🏆 </span>Awards
+            </TabsTrigger>
+            <TabsTrigger value="study-plan" className="text-xs sm:text-sm py-2">
+              <span className="hidden lg:inline">📅 </span>Plan
+            </TabsTrigger>
+          </TabsList>
 
+          <TabsContent value="overview" className="space-y-4 sm:space-y-6">
+            <StudentProgress />
+          </TabsContent>
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Courses Enrolled</CardTitle>
-                <BookOpen className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">0</div>
-                <p className="text-xs text-muted-foreground">
-                  Start your first course
-                </p>
-              </CardContent>
-            </Card>
+          <TabsContent value="courses">
+            <EnrolledCourses />
+          </TabsContent>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Lessons Completed</CardTitle>
-                <Award className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">0</div>
-                <p className="text-xs text-muted-foreground">
-                  Complete your first lesson
-                </p>
-              </CardContent>
-            </Card>
+          <TabsContent value="progress">
+            <StudentProgress detailed={true} />
+          </TabsContent>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Study Time</CardTitle>
-                <Clock className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">0h</div>
-                <p className="text-xs text-muted-foreground">
-                  Time spent learning
-                </p>
-              </CardContent>
-            </Card>
+          <TabsContent value="learning-path">
+            <LearningPath />
+          </TabsContent>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Community Points</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">0</div>
-                <p className="text-xs text-muted-foreground">
-                  Earn points by participating
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+          <TabsContent value="achievements">
+            <Achievements />
+          </TabsContent>
 
-          {/* Quick Actions */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <Card>
-              <CardHeader>
-                <CardTitle>Get Started</CardTitle>
-                <CardDescription>
-                  Begin your Wikipedia education journey with these recommended actions.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Button className="w-full justify-start" variant="outline">
-                  <BookOpen className="h-4 w-4 mr-2" />
-                  Browse Available Courses
-                </Button>
-                <Button className="w-full justify-start" variant="outline">
-                  <Users className="h-4 w-4 mr-2" />
-                  Join Community Discussions
-                </Button>
-                <Button className="w-full justify-start" variant="outline">
-                  <User className="h-4 w-4 mr-2" />
-                  Complete Your Profile
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-                <CardDescription>
-                  Your latest learning activities and achievements.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-slate-500">
-                  <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No recent activity yet.</p>
-                  <p className="text-sm">Start a course to see your progress here!</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+          <TabsContent value="study-plan">
+            <StudyPlan />
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );
