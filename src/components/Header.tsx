@@ -1,91 +1,201 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
-import { BookOpen, Users, Calendar, Library, User, LogOut } from 'lucide-react';
+import {
+  BookOpen,
+  Users,
+  Calendar,
+  Library,
+  User,
+  LogOut,
+  Menu,
+  X,
+  ChevronDown
+} from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 
 const Header = () => {
   const { user, isAuthenticated, logout } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
     try {
       await logout();
+      setMobileMenuOpen(false);
     } catch (error) {
       console.error('Logout failed:', error);
     }
   };
 
+  const navigationItems = [
+    { href: '#learning', icon: BookOpen, label: 'Learning Paths' },
+    { href: '#community', icon: Users, label: 'Community' },
+    { href: '#events', icon: Calendar, label: 'Events' },
+    { href: '#resources', icon: Library, label: 'Resources' },
+  ];
+
   return (
     <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-4">
+      <div className="container mx-auto px-4 py-3 lg:py-4">
         <div className="flex items-center justify-between">
-          <Link to="/" className="flex items-center space-x-2">
-            <BookOpen className="h-8 w-8 text-blue-600" />
-            <span className="text-2xl font-bold text-slate-800">WikiWalkthrough</span>
+          {/* Logo */}
+          <Link to="/" className="flex items-center space-x-2 flex-shrink-0">
+            <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
+            <span className="text-lg sm:text-2xl font-bold text-slate-800 hidden xs:block">
+              WikiWalkthrough
+            </span>
+            <span className="text-lg font-bold text-slate-800 xs:hidden">
+              WWT
+            </span>
           </Link>
 
-          <nav className="hidden md:flex items-center space-x-8">
-            <a href="#learning" className="flex items-center space-x-2 text-slate-600 hover:text-blue-600 transition-colors">
-              <BookOpen className="h-4 w-4" />
-              <span>Learning Paths</span>
-            </a>
-            <a href="#community" className="flex items-center space-x-2 text-slate-600 hover:text-blue-600 transition-colors">
-              <Users className="h-4 w-4" />
-              <span>Community</span>
-            </a>
-            <a href="#events" className="flex items-center space-x-2 text-slate-600 hover:text-blue-600 transition-colors">
-              <Calendar className="h-4 w-4" />
-              <span>Events</span>
-            </a>
-            <a href="#resources" className="flex items-center space-x-2 text-slate-600 hover:text-blue-600 transition-colors">
-              <Library className="h-4 w-4" />
-              <span>Resources</span>
-            </a>
+          {/* Desktop Navigation */}
+          <nav className="hidden lg:flex items-center space-x-6 xl:space-x-8">
+            {navigationItems.map((item) => (
+              <a
+                key={item.href}
+                href={item.href}
+                className="flex items-center space-x-2 text-slate-600 hover:text-blue-600 transition-colors duration-200 group"
+              >
+                <item.icon className="h-4 w-4 group-hover:scale-110 transition-transform duration-200" />
+                <span className="font-medium">{item.label}</span>
+              </a>
+            ))}
           </nav>
 
-          <div className="flex items-center space-x-4">
+          {/* User Menu & Actions */}
+          <div className="flex items-center space-x-2 sm:space-x-4">
             {isAuthenticated && user ? (
               <>
-                <div className="flex items-center space-x-2">
-                  <User className="h-5 w-5 text-slate-600" />
-                  <span className="text-slate-700 hidden sm:inline">
-                    {user.firstName} {user.lastName}
-                  </span>
-
-                </div>
-                <Link to="/dashboard">
-                  <Button variant="outline" className="hidden sm:inline-flex">
-                    Dashboard
-                  </Button>
-                </Link>
-                {user && ['ADMIN', 'SUPER_ADMIN'].includes(user.role) && (
-                  <Link to="/admin">
-                    <Button variant="outline" className="hidden sm:inline-flex">
-                      Admin Panel
+                {/* Desktop User Menu */}
+                <div className="hidden lg:flex items-center space-x-4">
+                  <Link to="/dashboard">
+                    <Button variant="outline" size="sm">
+                      Dashboard
                     </Button>
                   </Link>
-                )}
-                <Button variant="outline" onClick={handleLogout}>
-                  <LogOut className="h-4 w-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Logout</span>
-                </Button>
+                  {user && ['ADMIN', 'SUPER_ADMIN'].includes(user.role) && (
+                    <Link to="/admin">
+                      <Button variant="outline" size="sm">
+                        Admin Panel
+                      </Button>
+                    </Link>
+                  )}
+                </div>
+
+                {/* User Dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="flex items-center space-x-2 px-2 sm:px-3">
+                      <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                        <User className="h-4 w-4 text-white" />
+                      </div>
+                      <span className="hidden sm:block text-slate-700 font-medium">
+                        {user.firstName}
+                      </span>
+                      <ChevronDown className="h-4 w-4 text-slate-500" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <div className="px-3 py-2">
+                      <p className="text-sm font-medium">{user.firstName} {user.lastName}</p>
+                      <p className="text-xs text-slate-500">{user.email}</p>
+                    </div>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild className="lg:hidden">
+                      <Link to="/dashboard" className="flex items-center">
+                        <User className="mr-2 h-4 w-4" />
+                        Dashboard
+                      </Link>
+                    </DropdownMenuItem>
+                    {user && ['ADMIN', 'SUPER_ADMIN'].includes(user.role) && (
+                      <DropdownMenuItem asChild className="lg:hidden">
+                        <Link to="/admin" className="flex items-center">
+                          <BookOpen className="mr-2 h-4 w-4" />
+                          Admin Panel
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator className="lg:hidden" />
+                    <DropdownMenuItem onClick={handleLogout} className="text-red-600">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </>
             ) : (
               <>
                 <Link to="/login">
-                  <Button variant="outline" className="hidden sm:inline-flex">
+                  <Button variant="outline" size="sm" className="hidden sm:inline-flex">
                     Sign In
                   </Button>
                 </Link>
                 <Link to="/register">
-                  <Button className="bg-blue-600 hover:bg-blue-700">
-                    Get Started
+                  <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                    <span className="hidden sm:inline">Get Started</span>
+                    <span className="sm:hidden">Join</span>
                   </Button>
                 </Link>
               </>
             )}
+
+            {/* Mobile Menu Button */}
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="sm" className="lg:hidden">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-80">
+                <div className="flex flex-col space-y-6 mt-6">
+                  {/* Mobile Navigation */}
+                  <nav className="space-y-4">
+                    {navigationItems.map((item) => (
+                      <a
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="flex items-center space-x-3 text-slate-600 hover:text-blue-600 transition-colors p-2 rounded-lg hover:bg-slate-50"
+                      >
+                        <item.icon className="h-5 w-5" />
+                        <span className="font-medium">{item.label}</span>
+                      </a>
+                    ))}
+                  </nav>
+
+                  {/* Mobile Auth Actions */}
+                  {!isAuthenticated && (
+                    <div className="space-y-3 pt-4 border-t">
+                      <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
+                        <Button variant="outline" className="w-full">
+                          Sign In
+                        </Button>
+                      </Link>
+                      <Link to="/register" onClick={() => setMobileMenuOpen(false)}>
+                        <Button className="w-full bg-blue-600 hover:bg-blue-700">
+                          Get Started
+                        </Button>
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
       </div>

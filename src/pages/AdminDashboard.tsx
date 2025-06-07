@@ -15,11 +15,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 import Header from '@/components/Header';
 import CreateCourseForm from '@/components/admin/CreateCourseForm';
 import CourseManagement from '@/components/admin/CourseManagement';
 import VideoUpload from '@/components/admin/VideoUpload';
+import UserManagement from '@/components/admin/UserManagement';
+import Analytics from '@/components/admin/Analytics';
+import SystemHealth from '@/components/admin/SystemHealth';
 
 const AdminDashboard = () => {
   const { user, isAuthenticated } = useAuth();
@@ -37,130 +41,108 @@ const AdminDashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <Header />
-      
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-800 mb-2">
+
+      <main className="container mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-2">
             Admin Dashboard
           </h1>
-          <p className="text-slate-600">
+          <p className="text-sm sm:text-base text-slate-600">
             Manage courses, users, and platform content
           </p>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="courses">Courses</TabsTrigger>
-            <TabsTrigger value="create-course">Create Course</TabsTrigger>
-            <TabsTrigger value="upload">Upload Media</TabsTrigger>
-            <TabsTrigger value="users">Users</TabsTrigger>
+          {/* Mobile Tab Navigation */}
+          <div className="block sm:hidden">
+            <Select value={activeTab} onValueChange={setActiveTab}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a section" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="overview">📊 Overview</SelectItem>
+                <SelectItem value="courses">📚 Courses</SelectItem>
+                <SelectItem value="create-course">➕ Create Course</SelectItem>
+                <SelectItem value="upload">📤 Upload Media</SelectItem>
+                <SelectItem value="users">👥 Users</SelectItem>
+                <SelectItem value="system">⚙️ System</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Desktop Tab Navigation */}
+          <TabsList className="hidden sm:grid w-full grid-cols-3 lg:grid-cols-6 h-auto p-1">
+            <TabsTrigger value="overview" className="text-xs sm:text-sm py-2">
+              <span className="hidden lg:inline">📊 </span>Overview
+            </TabsTrigger>
+            <TabsTrigger value="courses" className="text-xs sm:text-sm py-2">
+              <span className="hidden lg:inline">📚 </span>Courses
+            </TabsTrigger>
+            <TabsTrigger value="create-course" className="text-xs sm:text-sm py-2">
+              <span className="hidden lg:inline">➕ </span>Create
+            </TabsTrigger>
+            <TabsTrigger value="upload" className="text-xs sm:text-sm py-2">
+              <span className="hidden lg:inline">📤 </span>Upload
+            </TabsTrigger>
+            <TabsTrigger value="users" className="text-xs sm:text-sm py-2">
+              <span className="hidden lg:inline">👥 </span>Users
+            </TabsTrigger>
+            <TabsTrigger value="system" className="text-xs sm:text-sm py-2">
+              <span className="hidden lg:inline">⚙️ </span>System
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Courses</CardTitle>
-                  <BookOpen className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">0</div>
-                  <p className="text-xs text-muted-foreground">
-                    +0 from last month
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">0</div>
-                  <p className="text-xs text-muted-foreground">
-                    +0 from last month
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Published Courses</CardTitle>
-                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">0</div>
-                  <p className="text-xs text-muted-foreground">
-                    0% of total courses
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Video Uploads</CardTitle>
-                  <Video className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">0</div>
-                  <p className="text-xs text-muted-foreground">
-                    Total video content
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
+            <Analytics />
 
             {/* Quick Actions */}
             <Card>
               <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
+                <CardTitle className="text-lg sm:text-xl">Quick Actions</CardTitle>
                 <CardDescription>
                   Common administrative tasks
                 </CardDescription>
               </CardHeader>
-              <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Button 
-                  onClick={() => setActiveTab('create-course')}
-                  className="h-20 flex flex-col gap-2"
-                >
-                  <Plus className="h-6 w-6" />
-                  Create New Course
-                </Button>
-                
-                <Button 
-                  variant="outline"
-                  onClick={() => setActiveTab('upload')}
-                  className="h-20 flex flex-col gap-2"
-                >
-                  <Upload className="h-6 w-6" />
-                  Upload Video
-                </Button>
-                
-                <Button 
-                  variant="outline"
-                  onClick={() => setActiveTab('courses')}
-                  className="h-20 flex flex-col gap-2"
-                >
-                  <Settings className="h-6 w-6" />
-                  Manage Courses
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Recent Activity */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-                <CardDescription>
-                  Latest platform activity
-                </CardDescription>
-              </CardHeader>
               <CardContent>
-                <div className="text-center py-8 text-slate-500">
-                  No recent activity to display
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                  <Button
+                    onClick={() => setActiveTab('create-course')}
+                    className="h-16 sm:h-20 flex flex-col gap-1 sm:gap-2 text-xs sm:text-sm"
+                    size="sm"
+                  >
+                    <Plus className="h-4 w-4 sm:h-6 sm:w-6" />
+                    <span className="text-center leading-tight">Create Course</span>
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    onClick={() => setActiveTab('upload')}
+                    className="h-16 sm:h-20 flex flex-col gap-1 sm:gap-2 text-xs sm:text-sm"
+                    size="sm"
+                  >
+                    <Upload className="h-4 w-4 sm:h-6 sm:w-6" />
+                    <span className="text-center leading-tight">Upload Media</span>
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    onClick={() => setActiveTab('courses')}
+                    className="h-16 sm:h-20 flex flex-col gap-1 sm:gap-2 text-xs sm:text-sm"
+                    size="sm"
+                  >
+                    <Settings className="h-4 w-4 sm:h-6 sm:w-6" />
+                    <span className="text-center leading-tight">Manage Courses</span>
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    onClick={() => setActiveTab('users')}
+                    className="h-16 sm:h-20 flex flex-col gap-1 sm:gap-2 text-xs sm:text-sm"
+                    size="sm"
+                  >
+                    <Users className="h-4 w-4 sm:h-6 sm:w-6" />
+                    <span className="text-center leading-tight">Manage Users</span>
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -179,19 +161,11 @@ const AdminDashboard = () => {
           </TabsContent>
 
           <TabsContent value="users">
-            <Card>
-              <CardHeader>
-                <CardTitle>User Management</CardTitle>
-                <CardDescription>
-                  Manage platform users and permissions
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-slate-500">
-                  User management coming soon...
-                </div>
-              </CardContent>
-            </Card>
+            <UserManagement />
+          </TabsContent>
+
+          <TabsContent value="system">
+            <SystemHealth />
           </TabsContent>
         </Tabs>
       </main>

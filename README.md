@@ -1,4 +1,4 @@
-# Wiki Spark Collaborate
+# WikiWalkthrough
 
 A Wikimedia education platform that helps users learn to contribute effectively to Wikipedia through structured learning paths, community collaboration, and expert mentorship.
 
@@ -53,7 +53,7 @@ A Wikimedia education platform that helps users learn to contribute effectively 
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd wiki-spark-collaborate
+   cd wikiwalkthrough
    ```
 
 2. **Install dependencies**
@@ -82,12 +82,12 @@ A Wikimedia education platform that helps users learn to contribute effectively 
 
    **Backend (server/.env):**
    ```env
-   MONGODB_URI=mongodb://localhost:27017/wiki-spark-collaborate
+   MONGODB_URI=mongodb://localhost:27017/wikiwalkthrough
    JWT_SECRET=your-super-secret-jwt-key
    SMTP_HOST=smtp.gmail.com
    SMTP_USER=your-email@gmail.com
    SMTP_PASS=your-app-password
-   FROM_EMAIL=noreply@wikisparkcollab.org
+   FROM_EMAIL=noreply@wikiwalkthrough.org
    ```
 
 5. **Start Development Servers**
@@ -161,7 +161,7 @@ A Wikimedia education platform that helps users learn to contribute effectively 
 ## Project Structure
 
 ```
-wiki-spark-collaborate/
+wikiwalkthrough/
 ├── src/                          # Frontend source
 │   ├── components/              # React components
 │   │   ├── auth/               # Authentication components
