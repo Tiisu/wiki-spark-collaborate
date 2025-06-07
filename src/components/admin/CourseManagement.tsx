@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-  Edit, 
-  Trash2, 
-  Eye, 
-  EyeOff, 
+import {
+  Edit,
+  Trash2,
+  Eye,
+  EyeOff,
   MoreHorizontal,
   Search,
-  Filter
+  Filter,
+  Plus
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -30,7 +31,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { adminApi, courseApi } from '@/lib/api';
+import { adminApi, courseApi, CreateCourseData } from '@/lib/api';
+import EditCourseForm from './EditCourseForm';
+import CreateCourseForm from './CreateCourseForm';
 
 interface AdminCourse {
   id: string;
@@ -44,6 +47,9 @@ interface AdminCourse {
   instructor?: string;
   totalLessons?: number;
   estimatedHours?: number;
+  tags?: string[];
+  price?: number;
+  duration?: number;
 }
 
 const CourseManagement = () => {
@@ -52,6 +58,9 @@ const CourseManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const [editingCourse, setEditingCourse] = useState<AdminCourse | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
 
   const { data: coursesData, isLoading, error } = useQuery({
     queryKey: ['admin-courses', currentPage, statusFilter],
@@ -108,6 +117,43 @@ const CourseManagement = () => {
     }
   });
 
+  // Update course mutation
+  const updateCourseMutation = useMutation({
+    mutationFn: async ({ courseId, courseData }: { courseId: string; courseData: Partial<CreateCourseData> }) => {
+      return courseApi.updateCourse(courseId, courseData);
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: 'Course updated successfully',
+      });
+      queryClient.invalidateQueries({ queryKey: ['admin-courses'] });
+      setShowEditDialog(false);
+      setEditingCourse(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  });
+
+  const handleEditCourse = (course: AdminCourse) => {
+    setEditingCourse(course);
+    setShowEditDialog(true);
+  };
+
+  const handleUpdateCourse = (courseData: Partial<CreateCourseData>) => {
+    if (editingCourse) {
+      updateCourseMutation.mutate({
+        courseId: editingCourse.id,
+        courseData
+      });
+    }
+  };
+
   console.log('coursesData structure:', coursesData);
   const courses = coursesData?.courses || [];
   const pagination = coursesData?.pagination;
@@ -143,10 +189,18 @@ const CourseManagement = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Course Management</CardTitle>
-        <CardDescription>
-          Manage all courses on the platform
-        </CardDescription>
+        <div className="flex justify-between items-start">
+          <div>
+            <CardTitle>Course Management</CardTitle>
+            <CardDescription>
+              Manage all courses on the platform
+            </CardDescription>
+          </div>
+          <Button onClick={() => setShowCreateForm(true)} className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Create Course
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Filters */}
@@ -245,13 +299,13 @@ const CourseManagement = () => {
                               </>
                             )}
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEditCourse(course)}>
                             <Edit className="mr-2 h-4 w-4" />
                             Edit
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => {
-                              if (confirm('Are you sure you want to delete this course?')) {
+                              if (window.confirm(`Are you sure you want to delete "${course.title}"? This action cannot be undone.`)) {
                                 deleteMutation.mutate(course.id);
                               }
                             }}
@@ -259,7 +313,7 @@ const CourseManagement = () => {
                             className="text-red-600"
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
+                            {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -294,6 +348,37 @@ const CourseManagement = () => {
           </div>
         )}
       </CardContent>
+
+      {/* Create Course Dialog */}
+      {showCreateForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-4 border-b flex justify-between items-center">
+              <h2 className="text-lg font-semibold">Create New Course</h2>
+              <Button variant="ghost" onClick={() => setShowCreateForm(false)}>
+                ×
+              </Button>
+            </div>
+            <div className="p-4">
+              <CreateCourseForm onSuccess={() => setShowCreateForm(false)} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Course Dialog */}
+      {editingCourse && (
+        <EditCourseForm
+          course={editingCourse}
+          isOpen={showEditDialog}
+          onClose={() => {
+            setShowEditDialog(false);
+            setEditingCourse(null);
+          }}
+          onSubmit={handleUpdateCourse}
+          isLoading={updateCourseMutation.isPending}
+        />
+      )}
     </Card>
   );
 };

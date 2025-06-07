@@ -14,7 +14,11 @@ import { useToast } from '@/hooks/use-toast';
 import { courseApi, CreateCourseData } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 
-const CreateCourseForm = () => {
+interface CreateCourseFormProps {
+  onSuccess?: () => void;
+}
+
+const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onSuccess }) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user, isAuthenticated } = useAuth();
@@ -43,6 +47,8 @@ const CreateCourseForm = () => {
       setTags([]);
       // Invalidate admin courses query to refresh the list
       queryClient.invalidateQueries({ queryKey: ['admin-courses'] });
+      // Call the onSuccess callback if provided
+      onSuccess?.();
     },
     onError: (error: any) => {
       console.error('Course creation error:', error);
