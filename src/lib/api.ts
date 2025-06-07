@@ -162,4 +162,223 @@ export const authApi = {
   },
 };
 
+// Course types
+export interface Course {
+  id: string;
+  title: string;
+  description: string;
+  instructor: string;
+  thumbnail?: string;
+  totalLessons: number;
+  completedLessons: number;
+  estimatedHours: number;
+  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
+  category: string;
+  rating: number;
+  progress: number;
+  level?: string;
+  tags?: string[];
+  price?: number;
+  isPublished?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  modules?: Module[];
+}
+
+export interface Module {
+  id: string;
+  title: string;
+  description: string;
+  order: number;
+  lessons: Lesson[];
+}
+
+export interface Lesson {
+  id: string;
+  title: string;
+  content: string;
+  type: string;
+  videoUrl?: string;
+  duration?: number;
+  order: number;
+  isCompleted: boolean;
+  progress: number;
+  moduleId: string;
+  quiz?: any;
+  quizAttempt?: any;
+  resources?: any[];
+}
+
+export interface CreateCourseData {
+  title: string;
+  description: string;
+  level: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+  category: string;
+  tags: string[];
+  price?: number;
+  duration?: number;
+}
+
+// Course API functions
+export const courseApi = {
+  // Get all courses (public)
+  getCourses: async (params?: {
+    page?: number;
+    limit?: number;
+    category?: string;
+    level?: string;
+    search?: string;
+  }): Promise<{ courses: Course[]; pagination: any }> => {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.category) queryParams.append('category', params.category);
+    if (params?.level) queryParams.append('level', params.level);
+    if (params?.search) queryParams.append('search', params.search);
+
+    const response = await apiRequest<{ courses: Course[]; pagination: any }>(
+      `/api/courses?${queryParams.toString()}`
+    );
+    return response.data!;
+  },
+
+  // Get single course by ID
+  getCourse: async (id: string): Promise<Course> => {
+    const response = await apiRequest<Course>(`/api/courses/${id}`);
+    return response.data!;
+  },
+
+  // Create new course (admin/instructor)
+  createCourse: async (courseData: CreateCourseData): Promise<Course> => {
+    const response = await apiRequest<Course>('/api/courses', {
+      method: 'POST',
+      body: JSON.stringify(courseData),
+    });
+    return response.data!;
+  },
+
+  // Update course (admin/instructor)
+  updateCourse: async (id: string, courseData: Partial<CreateCourseData>): Promise<Course> => {
+    const response = await apiRequest<Course>(`/api/courses/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(courseData),
+    });
+    return response.data!;
+  },
+
+  // Delete course (admin/instructor)
+  deleteCourse: async (id: string): Promise<void> => {
+    await apiRequest(`/api/courses/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Toggle course publish status
+  togglePublish: async (id: string): Promise<Course> => {
+    const response = await apiRequest<Course>(`/api/courses/${id}/publish`, {
+      method: 'PATCH',
+    });
+    return response.data!;
+  },
+
+  // Enroll in course
+  enrollInCourse: async (courseId: string): Promise<any> => {
+    const response = await apiRequest(`/api/courses/${courseId}/enroll`, {
+      method: 'POST',
+    });
+    return response.data!;
+  },
+
+  // Get user's enrolled courses
+  getEnrolledCourses: async (params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    search?: string;
+  }): Promise<{ courses: Course[]; pagination: any }> => {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.status) queryParams.append('status', params.status);
+    if (params?.search) queryParams.append('search', params.search);
+
+    const response = await apiRequest<{ courses: Course[]; pagination: any }>(
+      `/api/courses/enrolled?${queryParams.toString()}`
+    );
+    return response.data!;
+  },
+};
+
+// Admin API functions
+export const adminApi = {
+  // Get courses for admin dashboard
+  getCourses: async (params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    instructor?: string;
+  }): Promise<{ courses: Course[]; pagination: any }> => {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.status) queryParams.append('status', params.status);
+    if (params?.instructor) queryParams.append('instructor', params.instructor);
+
+    const response = await apiRequest<{ courses: Course[]; pagination: any }>(
+      `/api/admin/courses?${queryParams.toString()}`
+    );
+    return response.data!;
+  },
+
+  // Get analytics
+  getAnalytics: async (): Promise<any> => {
+    const response = await apiRequest('/api/admin/analytics');
+    return response.data!;
+  },
+
+  // Upload video
+  uploadVideo: async (file: File): Promise<{ url: string; filename: string }> => {
+    const formData = new FormData();
+    formData.append('video', file);
+
+    const response = await fetch(`${API_BASE_URL}/api/admin/upload/video`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new ApiError(error.message || 'Upload failed', response.status);
+    }
+
+    const data = await response.json();
+    return data.data;
+  },
+
+  // Upload thumbnail
+  uploadThumbnail: async (file: File): Promise<{ url: string; filename: string }> => {
+    const formData = new FormData();
+    formData.append('thumbnail', file);
+
+    const response = await fetch(`${API_BASE_URL}/api/admin/upload/thumbnail`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new ApiError(error.message || 'Upload failed', response.status);
+    }
+
+    const data = await response.json();
+    return data.data;
+  },
+};
+
 export { ApiError };

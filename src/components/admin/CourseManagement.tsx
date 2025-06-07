@@ -30,9 +30,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { adminApi, courseApi } from '@/lib/api';
 
-interface Course {
-  _id: string;
+interface AdminCourse {
+  id: string;
   title: string;
   description: string;
   level: string;
@@ -40,6 +41,9 @@ interface Course {
   isPublished: boolean;
   createdAt: string;
   updatedAt: string;
+  instructor?: string;
+  totalLessons?: number;
+  estimatedHours?: number;
 }
 
 const CourseManagement = () => {
@@ -49,83 +53,30 @@ const CourseManagement = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
 
-  const { data: coursesData, isLoading } = useQuery({
+  const { data: coursesData, isLoading, error } = useQuery({
     queryKey: ['admin-courses', currentPage, statusFilter],
     queryFn: async () => {
-      const params = new URLSearchParams({
-        page: currentPage.toString(),
-        limit: '10',
+      const result = await adminApi.getCourses({
+        page: currentPage,
+        limit: 10,
         ...(statusFilter !== 'all' && { status: statusFilter })
       });
-
-      const response = await fetch(`/api/admin/courses?${params}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch courses');
-      }
-
-      return response.json();
+      console.log('Admin courses data:', result);
+      return result;
     }
   });
 
-  const togglePublishMutation = useMutation({
-    mutationFn: async (courseId: string) => {
-      const response = await fetch(`/api/courses/${courseId}/publish`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-        }
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to update course');
-      }
-
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-courses'] });
-      toast({
-        title: 'Success',
-        description: 'Course status updated successfully',
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: 'Error',
-        description: error.message,
-        variant: 'destructive',
-      });
-    }
-  });
-
+  // Delete course mutation
   const deleteMutation = useMutation({
     mutationFn: async (courseId: string) => {
-      const response = await fetch(`/api/courses/${courseId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-        }
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to delete course');
-      }
-
-      return response.json();
+      return courseApi.deleteCourse(courseId);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-courses'] });
       toast({
         title: 'Success',
         description: 'Course deleted successfully',
       });
+      queryClient.invalidateQueries({ queryKey: ['admin-courses'] });
     },
     onError: (error: Error) => {
       toast({
@@ -136,13 +87,37 @@ const CourseManagement = () => {
     }
   });
 
-  const courses = coursesData?.data?.courses || [];
-  const pagination = coursesData?.data?.pagination;
+  // Toggle publish mutation
+  const togglePublishMutation = useMutation({
+    mutationFn: async (courseId: string) => {
+      return courseApi.togglePublish(courseId);
+    },
+    onSuccess: (data) => {
+      toast({
+        title: 'Success',
+        description: `Course ${data.isPublished ? 'published' : 'unpublished'} successfully`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['admin-courses'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  });
 
-  const filteredCourses = courses.filter((course: Course) =>
+  console.log('coursesData structure:', coursesData);
+  const courses = coursesData?.courses || [];
+  const pagination = coursesData?.pagination;
+  console.log('Extracted courses:', courses);
+
+  const filteredCourses = courses.filter((course: AdminCourse) =>
     course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     course.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
+  console.log('Filtered courses:', filteredCourses);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -200,9 +175,13 @@ const CourseManagement = () => {
         {/* Courses Table */}
         {isLoading ? (
           <div className="text-center py-8">Loading courses...</div>
+        ) : error ? (
+          <div className="text-center py-8 text-red-500">
+            Error loading courses: {error.message}
+          </div>
         ) : filteredCourses.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
-            No courses found
+            No courses found. Total courses from API: {courses?.length || 0}
           </div>
         ) : (
           <div className="border rounded-lg">
@@ -218,8 +197,8 @@ const CourseManagement = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredCourses.map((course: Course) => (
-                  <TableRow key={course._id}>
+                {filteredCourses.map((course: AdminCourse) => (
+                  <TableRow key={course.id}>
                     <TableCell className="font-medium">
                       <div>
                         <div className="font-semibold">{course.title}</div>
@@ -251,7 +230,8 @@ const CourseManagement = () => {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
-                            onClick={() => togglePublishMutation.mutate(course._id)}
+                            onClick={() => togglePublishMutation.mutate(course.id)}
+                            disabled={togglePublishMutation.isPending}
                           >
                             {course.isPublished ? (
                               <>
@@ -272,9 +252,10 @@ const CourseManagement = () => {
                           <DropdownMenuItem
                             onClick={() => {
                               if (confirm('Are you sure you want to delete this course?')) {
-                                deleteMutation.mutate(course._id);
+                                deleteMutation.mutate(course.id);
                               }
                             }}
+                            disabled={deleteMutation.isPending}
                             className="text-red-600"
                           >
                             <Trash2 className="mr-2 h-4 w-4" />

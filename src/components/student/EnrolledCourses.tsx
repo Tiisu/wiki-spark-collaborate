@@ -29,6 +29,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import LoadingSkeleton from '@/components/ui/loading-skeleton';
+import { courseApi } from '@/lib/api';
 
 interface Course {
   id: string;
@@ -58,88 +59,16 @@ const EnrolledCourses = () => {
   const { data: coursesData, isLoading } = useQuery({
     queryKey: ['enrolled-courses', searchTerm, filterStatus, sortBy],
     queryFn: async () => {
-      // Mock data - replace with actual API call
-      const mockCourses: Course[] = [
-        {
-          id: '1',
-          title: 'Introduction to Wikipedia Editing',
-          description: 'Learn the basics of editing Wikipedia articles, understanding policies, and contributing to the world\'s largest encyclopedia.',
-          instructor: 'Dr. Sarah Johnson',
-          progress: 75,
-          totalLessons: 12,
-          completedLessons: 9,
-          videoLessons: 8,
-          estimatedHours: 8,
-          difficulty: 'Beginner',
-          category: 'Editing',
-          enrolledAt: '2024-01-15',
-          lastAccessed: '2024-01-20',
-          rating: 4.8,
-          isCompleted: false,
-        },
-        {
-          id: '2',
-          title: 'Wikipedia Research Methods',
-          description: 'Advanced techniques for researching and verifying information for Wikipedia articles.',
-          instructor: 'Prof. Michael Chen',
-          progress: 100,
-          totalLessons: 15,
-          completedLessons: 15,
-          videoLessons: 12,
-          estimatedHours: 12,
-          difficulty: 'Intermediate',
-          category: 'Research',
-          enrolledAt: '2024-01-10',
-          lastAccessed: '2024-01-18',
-          rating: 4.9,
-          isCompleted: true,
-        },
-        {
-          id: '3',
-          title: 'Advanced Wikipedia Administration',
-          description: 'Learn about Wikipedia\'s administrative tools, policies, and community management.',
-          instructor: 'Admin Lisa Rodriguez',
-          progress: 30,
-          totalLessons: 20,
-          completedLessons: 6,
-          videoLessons: 15,
-          estimatedHours: 15,
-          difficulty: 'Advanced',
-          category: 'Administration',
-          enrolledAt: '2024-01-20',
-          lastAccessed: '2024-01-21',
-          rating: 4.7,
-          isCompleted: false,
-        },
-      ];
+      // Get enrolled courses from API
+      const response = await courseApi.getEnrolledCourses({
+        search: searchTerm || undefined,
+        status: filterStatus !== 'all' ? filterStatus.toUpperCase().replace('-', '_') : undefined
+      });
 
-      // Apply filters
-      let filteredCourses = mockCourses;
+      let courses = response.courses;
 
-      if (searchTerm) {
-        filteredCourses = filteredCourses.filter(course =>
-          course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          course.description.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-      }
-
-      if (filterStatus !== 'all') {
-        filteredCourses = filteredCourses.filter(course => {
-          switch (filterStatus) {
-            case 'completed':
-              return course.isCompleted;
-            case 'in-progress':
-              return !course.isCompleted && course.progress > 0;
-            case 'not-started':
-              return course.progress === 0;
-            default:
-              return true;
-          }
-        });
-      }
-
-      // Apply sorting
-      filteredCourses.sort((a, b) => {
+      // Apply client-side sorting since API doesn't support all sort options yet
+      courses.sort((a, b) => {
         switch (sortBy) {
           case 'recent':
             return new Date(b.lastAccessed || b.enrolledAt).getTime() - new Date(a.lastAccessed || a.enrolledAt).getTime();
@@ -152,7 +81,7 @@ const EnrolledCourses = () => {
         }
       });
 
-      return filteredCourses;
+      return courses;
     },
   });
 
@@ -203,7 +132,10 @@ const EnrolledCourses = () => {
             {courses.length} course{courses.length !== 1 ? 's' : ''} enrolled
           </p>
         </div>
-        <Button className="w-full sm:w-auto">
+        <Button
+          className="w-full sm:w-auto"
+          onClick={() => navigate('/courses')}
+        >
           <BookOpen className="h-4 w-4 mr-2" />
           Browse More Courses
         </Button>
@@ -255,7 +187,7 @@ const EnrolledCourses = () => {
                 : 'Start your learning journey by enrolling in a course'
               }
             </p>
-            <Button>
+            <Button onClick={() => navigate('/courses')}>
               <BookOpen className="h-4 w-4 mr-2" />
               Browse Courses
             </Button>

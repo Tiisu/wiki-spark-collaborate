@@ -21,6 +21,7 @@ import {
   Trophy
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { courseApi } from '@/lib/api';
 
 interface Course {
   id: string;
@@ -95,11 +96,24 @@ const CourseViewer = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // Fetch course data
-  const { data: course, isLoading } = useQuery({
+  const { data: course, isLoading, error } = useQuery({
     queryKey: ['course', courseId],
     queryFn: async () => {
-      // Mock data - replace with actual API call
-      const mockCourse: Course = {
+      if (!courseId) throw new Error('Course ID is required');
+      try {
+        return await courseApi.getCourse(courseId);
+      } catch (error) {
+        // If API fails, return mock data for development
+        console.warn('API call failed, using mock data:', error);
+        return getMockCourse(courseId);
+      }
+    },
+    enabled: !!courseId
+  });
+
+  // Mock course data function for development fallback
+  const getMockCourse = (courseId: string): Course => {
+    return {
         id: courseId!,
         title: 'Introduction to Wikipedia Editing',
         description: 'Learn the fundamentals of editing Wikipedia articles, understanding policies, and contributing to the world\'s largest encyclopedia.',
@@ -257,9 +271,28 @@ const CourseViewer = () => {
           }
         ]
       };
-      return mockCourse;
+    };
+
+  // Enrollment mutation
+  const enrollMutation = useMutation({
+    mutationFn: async (courseId: string) => {
+      return courseApi.enrollInCourse(courseId);
     },
-    enabled: !!courseId
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: 'Successfully enrolled in course!',
+      });
+      queryClient.invalidateQueries({ queryKey: ['course', courseId] });
+      queryClient.invalidateQueries({ queryKey: ['enrolled-courses'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
   });
 
   // Update lesson progress mutation

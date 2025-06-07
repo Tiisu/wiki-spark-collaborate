@@ -17,6 +17,7 @@ import WikipediaEditorPage from "./pages/WikipediaEditorPage";
 import CourseViewer from "./pages/CourseViewer";
 import VideoTutorials from "./pages/VideoTutorials";
 import QuizDemo from "./pages/QuizDemo";
+import CourseBrowser from "./pages/CourseBrowser";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -77,6 +78,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <CourseViewer />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/courses"
+                element={
+                  <ProtectedRoute>
+                    <CourseBrowser />
                   </ProtectedRoute>
                 }
               />

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2, BookOpen, Tag, DollarSign, Clock } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -11,19 +11,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-
-interface CreateCourseData {
-  title: string;
-  description: string;
-  level: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
-  category: string;
-  tags: string[];
-  price?: number;
-  duration?: number;
-}
+import { courseApi, CreateCourseData } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 const CreateCourseForm = () => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { user, isAuthenticated } = useAuth();
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
 
@@ -38,21 +32,7 @@ const CreateCourseForm = () => {
 
   const createCourseMutation = useMutation({
     mutationFn: async (data: CreateCourseData) => {
-      const response = await fetch('/api/courses', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-        },
-        body: JSON.stringify(data)
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to create course');
-      }
-
-      return response.json();
+      return courseApi.createCourse(data);
     },
     onSuccess: () => {
       toast({
@@ -61,23 +41,54 @@ const CreateCourseForm = () => {
       });
       reset();
       setTags([]);
+      // Invalidate admin courses query to refresh the list
+      queryClient.invalidateQueries({ queryKey: ['admin-courses'] });
     },
-    onError: (error: Error) => {
+    onError: (error: any) => {
+      console.error('Course creation error:', error);
       toast({
         title: 'Error',
-        description: error.message,
+        description: error.message || 'Failed to create course',
         variant: 'destructive',
       });
     }
   });
 
   const onSubmit = (data: CreateCourseData) => {
-    createCourseMutation.mutate({
-      ...data,
+    // Check authentication
+    if (!isAuthenticated || !user) {
+      toast({
+        title: 'Error',
+        description: 'You must be logged in to create courses',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Ensure all required fields are present
+    if (!data.level) {
+      toast({
+        title: 'Error',
+        description: 'Please select a difficulty level',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Convert string values to numbers and ensure proper types
+    const courseData: CreateCourseData = {
+      title: data.title,
+      description: data.description,
+      level: data.level,
+      category: data.category,
       tags,
-      price: data.price || 0,
-      duration: data.duration || undefined
-    });
+      price: data.price && !isNaN(Number(data.price)) ? Number(data.price) : 0,
+      duration: data.duration && !isNaN(Number(data.duration)) ? Number(data.duration) : undefined
+    };
+
+    console.log('Submitting course data:', courseData);
+
+    createCourseMutation.mutate(courseData);
   };
 
   const addTag = () => {
@@ -183,7 +194,10 @@ const CreateCourseForm = () => {
               <Input
                 id="duration"
                 type="number"
-                {...register('duration', { min: 1 })}
+                {...register('duration', {
+                  min: 1,
+                  valueAsNumber: true
+                })}
                 placeholder="e.g., 120"
               />
             </div>
@@ -197,7 +211,10 @@ const CreateCourseForm = () => {
                 id="price"
                 type="number"
                 step="0.01"
-                {...register('price', { min: 0 })}
+                {...register('price', {
+                  min: 0,
+                  valueAsNumber: true
+                })}
                 placeholder="0.00 (free)"
               />
             </div>

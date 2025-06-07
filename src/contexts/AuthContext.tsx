@@ -43,8 +43,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   } = useQuery({
     queryKey: ['currentUser'],
     queryFn: async () => {
-      const response = await authApi.getCurrentUser();
-      return response.user;
+      try {
+        const response = await authApi.getCurrentUser();
+        return response.user;
+      } catch (error) {
+        console.error('Failed to fetch current user:', error);
+        // Clear invalid token
+        localStorage.removeItem('auth_token');
+        throw error;
+      }
     },
     enabled: hasToken,
     retry: false,
