@@ -88,6 +88,11 @@ const Header = () => {
                       Dashboard
                     </Button>
                   </Link>
+                  <Link to="/editor/sandbox">
+                    <Button variant="outline" size="sm">
+                      Editor
+                    </Button>
+                  </Link>
                   {user && ['ADMIN', 'SUPER_ADMIN'].includes(user.role) && (
                     <Link to="/admin">
                       <Button variant="outline" size="sm">
@@ -120,6 +125,12 @@ const Header = () => {
                       <Link to="/dashboard" className="flex items-center">
                         <User className="mr-2 h-4 w-4" />
                         Dashboard
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild className="lg:hidden">
+                      <Link to="/editor/sandbox" className="flex items-center">
+                        <BookOpen className="mr-2 h-4 w-4" />
+                        Editor
                       </Link>
                     </DropdownMenuItem>
                     {user && ['ADMIN', 'SUPER_ADMIN'].includes(user.role) && (

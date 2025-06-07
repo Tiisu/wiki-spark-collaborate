@@ -12,6 +12,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import WikipediaEditorPage from "./pages/WikipediaEditorPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,6 +43,22 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/editor/:mode/:articleTitle?"
+              element={
+                <ProtectedRoute>
+                  <WikipediaEditorPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/editor/:mode/:articleTitle/lesson/:lessonId"
+              element={
+                <ProtectedRoute>
+                  <WikipediaEditorPage />
                 </ProtectedRoute>
               }
             />

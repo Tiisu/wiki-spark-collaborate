@@ -18,6 +18,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import LoadingSkeleton from '@/components/ui/loading-skeleton';
+import { Link } from 'react-router-dom';
 
 interface StudentProgressProps {
   detailed?: boolean;
@@ -208,7 +209,7 @@ const StudentProgress: React.FC<StudentProgressProps> = ({ detailed = false }) =
             </CardDescription>
           </CardHeader>
           <CardContent className="p-4 sm:p-6 pt-0">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               <Button className="h-16 flex flex-col gap-1 text-xs sm:text-sm" size="sm">
                 <Play className="h-4 w-4" />
                 Continue Learning
@@ -217,6 +218,12 @@ const StudentProgress: React.FC<StudentProgressProps> = ({ detailed = false }) =
                 <BookOpen className="h-4 w-4" />
                 Browse Courses
               </Button>
+              <Link to="/editor/sandbox">
+                <Button variant="outline" className="h-16 flex flex-col gap-1 text-xs sm:text-sm w-full" size="sm">
+                  <BarChart3 className="h-4 w-4" />
+                  Practice Editing
+                </Button>
+              </Link>
               <Button variant="outline" className="h-16 flex flex-col gap-1 text-xs sm:text-sm" size="sm">
                 <Users className="h-4 w-4" />
                 Join Community
