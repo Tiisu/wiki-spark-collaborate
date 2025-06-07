@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { BookOpen, Users, Database, Camera, Clock, Star } from 'lucide-react';
+import { BookOpen, Users, Database, Camera, Clock, Star, Video } from 'lucide-react';
 
 const LearningPaths = () => {
   const paths = [
@@ -13,6 +13,7 @@ const LearningPaths = () => {
       level: "Beginner",
       duration: "2-3 weeks",
       modules: 8,
+      videoLessons: 12,
       icon: BookOpen,
       color: "text-blue-600",
       bgColor: "bg-blue-50 dark:bg-blue-900/20",
@@ -24,6 +25,7 @@ const LearningPaths = () => {
       level: "Intermediate",
       duration: "4-5 weeks",
       modules: 12,
+      videoLessons: 18,
       icon: Users,
       color: "text-green-600",
       bgColor: "bg-green-50 dark:bg-green-900/20",
@@ -35,6 +37,7 @@ const LearningPaths = () => {
       level: "Advanced",
       duration: "3-4 weeks",
       modules: 10,
+      videoLessons: 15,
       icon: Database,
       color: "text-purple-600",
       bgColor: "bg-purple-50 dark:bg-purple-900/20",
@@ -84,6 +87,10 @@ const LearningPaths = () => {
                     <div className="flex items-center space-x-1">
                       <BookOpen className="h-4 w-4" />
                       <span>{path.modules} modules</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <Video className="h-4 w-4" />
+                      <span>{path.videoLessons} videos</span>
                     </div>
                   </div>
 

@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { 
-  BookOpen, 
-  Clock, 
-  Play, 
-  CheckCircle, 
+import { useNavigate } from 'react-router-dom';
+import {
+  BookOpen,
+  Clock,
+  Play,
+  CheckCircle,
   MoreHorizontal,
   Search,
   Filter,
   Calendar,
   User,
   Star,
-  BarChart3
+  BarChart3,
+  Video
 } from 'lucide-react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -37,6 +39,7 @@ interface Course {
   progress: number;
   totalLessons: number;
   completedLessons: number;
+  videoLessons: number;
   estimatedHours: number;
   difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
   category: string;
@@ -47,6 +50,7 @@ interface Course {
 }
 
 const EnrolledCourses = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [sortBy, setSortBy] = useState('recent');
@@ -64,6 +68,7 @@ const EnrolledCourses = () => {
           progress: 75,
           totalLessons: 12,
           completedLessons: 9,
+          videoLessons: 8,
           estimatedHours: 8,
           difficulty: 'Beginner',
           category: 'Editing',
@@ -80,6 +85,7 @@ const EnrolledCourses = () => {
           progress: 100,
           totalLessons: 15,
           completedLessons: 15,
+          videoLessons: 12,
           estimatedHours: 12,
           difficulty: 'Intermediate',
           category: 'Research',
@@ -96,6 +102,7 @@ const EnrolledCourses = () => {
           progress: 30,
           totalLessons: 20,
           completedLessons: 6,
+          videoLessons: 15,
           estimatedHours: 15,
           difficulty: 'Advanced',
           category: 'Administration',
@@ -275,11 +282,11 @@ const EnrolledCourses = () => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate(`/course/${course.id}`)}>
                         <Play className="mr-2 h-4 w-4" />
                         Continue Learning
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate(`/course/${course.id}`)}>
                         <BarChart3 className="mr-2 h-4 w-4" />
                         View Progress
                       </DropdownMenuItem>
@@ -321,6 +328,10 @@ const EnrolledCourses = () => {
                     <Clock className="h-3 w-3" />
                     {course.estimatedHours}h
                   </Badge>
+                  <Badge variant="outline" className="flex items-center gap-1">
+                    <Video className="h-3 w-3" />
+                    {course.videoLessons} videos
+                  </Badge>
                 </div>
 
                 {/* Instructor & Rating */}
@@ -344,10 +355,11 @@ const EnrolledCourses = () => {
                 )}
 
                 {/* Action Button */}
-                <Button 
-                  className="w-full" 
+                <Button
+                  className="w-full"
                   variant={course.isCompleted ? "outline" : "default"}
                   size="sm"
+                  onClick={() => navigate(`/course/${course.id}`)}
                 >
                   {course.isCompleted ? (
                     <>

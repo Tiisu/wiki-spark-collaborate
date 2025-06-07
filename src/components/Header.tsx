@@ -43,7 +43,8 @@ const Header = () => {
   };
 
   const navigationItems = [
-    { href: '#learning', icon: BookOpen, label: 'Learning Paths' },
+    { href: '/tutorials', icon: BookOpen, label: 'Video Tutorials' },
+    { href: '#learning', icon: Library, label: 'Learning Paths' },
     { href: '#community', icon: Users, label: 'Community' },
     { href: '#events', icon: Calendar, label: 'Events' },
     { href: '#resources', icon: Library, label: 'Resources' },
