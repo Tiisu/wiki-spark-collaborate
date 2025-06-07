@@ -56,15 +56,17 @@ const EnrolledCourses = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [sortBy, setSortBy] = useState('recent');
 
-  const { data: coursesData, isLoading } = useQuery({
+  const { data: coursesData, isLoading, error } = useQuery({
     queryKey: ['enrolled-courses', searchTerm, filterStatus, sortBy],
     queryFn: async () => {
       // Get enrolled courses from API
+      console.log('Fetching enrolled courses...');
       const response = await courseApi.getEnrolledCourses({
         search: searchTerm || undefined,
         status: filterStatus !== 'all' ? filterStatus.toUpperCase().replace('-', '_') : undefined
       });
 
+      console.log('Enrolled courses response:', response);
       let courses = response.courses;
 
       // Apply client-side sorting since API doesn't support all sort options yet
@@ -81,6 +83,7 @@ const EnrolledCourses = () => {
         }
       });
 
+      console.log('Final enrolled courses:', courses);
       return courses;
     },
   });
@@ -96,6 +99,25 @@ const EnrolledCourses = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
           <LoadingSkeleton variant="card" count={3} />
         </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    console.error('Error loading enrolled courses:', error);
+    return (
+      <div className="space-y-4 sm:space-y-6">
+        <Card>
+          <CardContent className="text-center py-12">
+            <h3 className="text-lg font-semibold text-red-600 mb-2">Error loading courses</h3>
+            <p className="text-gray-500 mb-4">
+              {error.message || 'Failed to load enrolled courses'}
+            </p>
+            <Button onClick={() => window.location.reload()}>
+              Try Again
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
