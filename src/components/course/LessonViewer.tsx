@@ -6,6 +6,8 @@ import { Progress } from '@/components/ui/progress';
 import { VideoPlayer } from '@/components/ui/video-player';
 import { QuizModal } from '@/components/quiz/QuizModal';
 import { QuizQuestion } from '@/components/quiz/QuizQuestion';
+import { InteractiveExercise } from './InteractiveExercise';
+import { AssignmentSubmission } from './AssignmentSubmission';
 import {
   Play,
   CheckCircle,
@@ -267,21 +269,115 @@ export function LessonViewer({
         </Card>
       )}
 
-      {/* Text Content */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <BookOpen className="h-5 w-5" />
-            <span>Lesson Content</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div 
-            className="prose prose-slate dark:prose-invert max-w-none"
-            dangerouslySetInnerHTML={{ __html: lesson.content }}
+      {/* Lesson Content - Different formats based on type */}
+      {lesson.type === LessonType.QUIZ ? (
+        // Quiz Lesson - Interactive Quiz Interface
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <HelpCircle className="h-5 w-5" />
+              <span>Interactive Quiz</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div
+                className="prose prose-slate dark:prose-invert max-w-none mb-6"
+                dangerouslySetInnerHTML={{ __html: lesson.content }}
+              />
+              <div className="bg-muted/50 rounded-lg p-6 text-center">
+                <HelpCircle className="h-12 w-12 mx-auto mb-4 text-purple-600" />
+                <h3 className="text-lg font-semibold mb-2">Ready to Test Your Knowledge?</h3>
+                <p className="text-muted-foreground mb-4">
+                  Complete this interactive quiz to demonstrate your understanding of the lesson material.
+                </p>
+                <Button
+                  onClick={() => setShowQuizModal(true)}
+                  className="bg-purple-600 hover:bg-purple-700"
+                >
+                  <Trophy className="h-4 w-4 mr-2" />
+                  {quizAttempt?.passed ? 'Review Quiz' : quizAttempt ? 'Retake Quiz' : 'Start Quiz'}
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ) : lesson.type === LessonType.INTERACTIVE ? (
+        // Interactive Lesson - Hands-on Activities
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Play className="h-5 w-5" />
+                <span>Interactive Learning</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div
+                className="prose prose-slate dark:prose-invert max-w-none"
+                dangerouslySetInnerHTML={{ __html: lesson.content }}
+              />
+            </CardContent>
+          </Card>
+
+          <InteractiveExercise
+            title="Interactive Exercise"
+            description="Complete this hands-on exercise to practice what you've learned in this lesson."
+            onComplete={() => {
+              if (!isCompleted) {
+                handleComplete();
+              }
+            }}
           />
-        </CardContent>
-      </Card>
+        </div>
+      ) : lesson.type === LessonType.ASSIGNMENT ? (
+        // Assignment Lesson - Task-based Learning
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <FileText className="h-5 w-5" />
+                <span>Assignment Instructions</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div
+                className="prose prose-slate dark:prose-invert max-w-none"
+                dangerouslySetInnerHTML={{ __html: lesson.content }}
+              />
+            </CardContent>
+          </Card>
+
+          <AssignmentSubmission
+            title={lesson.title}
+            description="Complete this assignment to demonstrate your understanding of the lesson material."
+            dueDate={lesson.dueDate}
+            onSubmit={(submission) => {
+              console.log('Assignment submitted:', submission);
+              if (!isCompleted) {
+                handleComplete();
+              }
+            }}
+            existingSubmission={lesson.assignmentSubmission}
+          />
+        </div>
+      ) : (
+        // Text/Default Lesson - Standard Content
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <BookOpen className="h-5 w-5" />
+              <span>Lesson Content</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div
+              className="prose prose-slate dark:prose-invert max-w-none"
+              dangerouslySetInnerHTML={{ __html: lesson.content }}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Resources */}
       {lesson.resources && lesson.resources.length > 0 && (
@@ -332,7 +428,8 @@ export function LessonViewer({
             </div>
 
             <div className="flex space-x-2">
-              {lesson.quiz && (
+              {/* Quiz lessons - handled by the quiz interface above */}
+              {lesson.type === LessonType.QUIZ && lesson.quiz && (
                 <Button
                   variant={quizAttempt?.passed ? "outline" : "default"}
                   onClick={() => setShowQuizModal(true)}
@@ -342,7 +439,29 @@ export function LessonViewer({
                 </Button>
               )}
 
-              {!isCompleted && lesson.type !== LessonType.VIDEO && !lesson.quiz && (
+              {/* Interactive lessons - special completion */}
+              {lesson.type === LessonType.INTERACTIVE && !isCompleted && (
+                <Button onClick={handleComplete} className="bg-orange-600 hover:bg-orange-700">
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Complete Interactive Lesson
+                </Button>
+              )}
+
+              {/* Assignment lessons - special completion */}
+              {lesson.type === LessonType.ASSIGNMENT && !isCompleted && (
+                <Button onClick={handleComplete} className="bg-blue-600 hover:bg-blue-700">
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Submit Assignment
+                </Button>
+              )}
+
+              {/* Text lessons and other types - standard completion */}
+              {!isCompleted &&
+               lesson.type !== LessonType.VIDEO &&
+               lesson.type !== LessonType.QUIZ &&
+               lesson.type !== LessonType.INTERACTIVE &&
+               lesson.type !== LessonType.ASSIGNMENT &&
+               !lesson.quiz && (
                 <Button onClick={handleComplete}>
                   <CheckCircle className="h-4 w-4 mr-2" />
                   Mark as Complete
@@ -350,7 +469,13 @@ export function LessonViewer({
               )}
 
               {hasNext && (
-                <Button onClick={onNext} disabled={lesson.quiz && !quizAttempt?.passed}>
+                <Button
+                  onClick={onNext}
+                  disabled={
+                    (lesson.quiz && !quizAttempt?.passed) ||
+                    (lesson.type === LessonType.QUIZ && !isCompleted)
+                  }
+                >
                   Next Lesson
                   <ChevronRight className="h-4 w-4 ml-2" />
                 </Button>
