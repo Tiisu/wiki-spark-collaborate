@@ -8,7 +8,8 @@ import {
   MoreHorizontal,
   Search,
   Filter,
-  Plus
+  Plus,
+  BookOpen
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -34,6 +35,7 @@ import { useToast } from '@/hooks/use-toast';
 import { adminApi, courseApi, CreateCourseData } from '@/lib/api';
 import EditCourseForm from './EditCourseForm';
 import CreateCourseForm from './CreateCourseForm';
+import CourseContentManager from './CourseContentManager';
 
 interface AdminCourse {
   id: string;
@@ -61,6 +63,7 @@ const CourseManagement = () => {
   const [editingCourse, setEditingCourse] = useState<AdminCourse | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [managingContentCourse, setManagingContentCourse] = useState<AdminCourse | null>(null);
 
   const { data: coursesData, isLoading, error } = useQuery({
     queryKey: ['admin-courses', currentPage, statusFilter],
@@ -303,6 +306,10 @@ const CourseManagement = () => {
                             <Edit className="mr-2 h-4 w-4" />
                             Edit
                           </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setManagingContentCourse(course)}>
+                            <BookOpen className="mr-2 h-4 w-4" />
+                            Manage Content
+                          </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => {
                               if (window.confirm(`Are you sure you want to delete "${course.title}"? This action cannot be undone.`)) {
@@ -378,6 +385,21 @@ const CourseManagement = () => {
           onSubmit={handleUpdateCourse}
           isLoading={updateCourseMutation.isPending}
         />
+      )}
+
+      {/* Course Content Manager */}
+      {managingContentCourse && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-7xl w-full max-h-[95vh] overflow-y-auto">
+            <div className="p-6">
+              <CourseContentManager
+                courseId={managingContentCourse.id}
+                courseTitle={managingContentCourse.title}
+                onClose={() => setManagingContentCourse(null)}
+              />
+            </div>
+          </div>
+        </div>
       )}
     </Card>
   );

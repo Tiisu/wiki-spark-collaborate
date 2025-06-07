@@ -309,6 +309,145 @@ export const courseApi = {
   },
 };
 
+// Module and Lesson types
+export interface ModuleData {
+  id: string;
+  title: string;
+  description?: string;
+  order: number;
+  isPublished: boolean;
+  courseId: string;
+  lessonCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateModuleData {
+  title: string;
+  description?: string;
+  order: number;
+}
+
+export interface LessonData {
+  id: string;
+  title: string;
+  content: string;
+  type: 'TEXT' | 'VIDEO' | 'INTERACTIVE' | 'QUIZ' | 'ASSIGNMENT';
+  videoUrl?: string;
+  duration?: number;
+  order: number;
+  isPublished: boolean;
+  moduleId: string;
+  creatorId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateLessonData {
+  title: string;
+  content: string;
+  type: 'TEXT' | 'VIDEO' | 'INTERACTIVE' | 'QUIZ' | 'ASSIGNMENT';
+  videoUrl?: string;
+  duration?: number;
+  order: number;
+}
+
+// Module API functions
+export const moduleApi = {
+  // Get modules for a course
+  getModules: async (courseId: string): Promise<{ modules: ModuleData[] }> => {
+    const response = await apiRequest<{ modules: ModuleData[] }>(
+      `/api/courses/${courseId}/modules`
+    );
+    return response.data!;
+  },
+
+  // Create module
+  createModule: async (courseId: string, moduleData: CreateModuleData): Promise<ModuleData> => {
+    const response = await apiRequest<ModuleData>(`/api/courses/${courseId}/modules`, {
+      method: 'POST',
+      body: JSON.stringify(moduleData),
+    });
+    return response.data!;
+  },
+
+  // Update module
+  updateModule: async (courseId: string, moduleId: string, moduleData: Partial<CreateModuleData>): Promise<ModuleData> => {
+    const response = await apiRequest<ModuleData>(`/api/courses/${courseId}/modules/${moduleId}`, {
+      method: 'PUT',
+      body: JSON.stringify(moduleData),
+    });
+    return response.data!;
+  },
+
+  // Delete module
+  deleteModule: async (courseId: string, moduleId: string): Promise<void> => {
+    await apiRequest(`/api/courses/${courseId}/modules/${moduleId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Toggle module publish status
+  togglePublish: async (courseId: string, moduleId: string): Promise<{ id: string; isPublished: boolean }> => {
+    const response = await apiRequest<{ id: string; isPublished: boolean }>(
+      `/api/courses/${courseId}/modules/${moduleId}/publish`,
+      { method: 'PATCH' }
+    );
+    return response.data!;
+  },
+};
+
+// Lesson API functions
+export const lessonApi = {
+  // Get lessons for a module
+  getLessons: async (courseId: string, moduleId: string): Promise<{ lessons: LessonData[] }> => {
+    const response = await apiRequest<{ lessons: LessonData[] }>(
+      `/api/courses/${courseId}/modules/${moduleId}/lessons`
+    );
+    return response.data!;
+  },
+
+  // Create lesson
+  createLesson: async (courseId: string, moduleId: string, lessonData: CreateLessonData): Promise<LessonData> => {
+    const response = await apiRequest<LessonData>(
+      `/api/courses/${courseId}/modules/${moduleId}/lessons`,
+      {
+        method: 'POST',
+        body: JSON.stringify(lessonData),
+      }
+    );
+    return response.data!;
+  },
+
+  // Update lesson
+  updateLesson: async (courseId: string, moduleId: string, lessonId: string, lessonData: Partial<CreateLessonData>): Promise<LessonData> => {
+    const response = await apiRequest<LessonData>(
+      `/api/courses/${courseId}/modules/${moduleId}/lessons/${lessonId}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(lessonData),
+      }
+    );
+    return response.data!;
+  },
+
+  // Delete lesson
+  deleteLesson: async (courseId: string, moduleId: string, lessonId: string): Promise<void> => {
+    await apiRequest(`/api/courses/${courseId}/modules/${moduleId}/lessons/${lessonId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Toggle lesson publish status
+  togglePublish: async (courseId: string, moduleId: string, lessonId: string): Promise<{ id: string; isPublished: boolean }> => {
+    const response = await apiRequest<{ id: string; isPublished: boolean }>(
+      `/api/courses/${courseId}/modules/${moduleId}/lessons/${lessonId}/publish`,
+      { method: 'PATCH' }
+    );
+    return response.data!;
+  },
+};
+
 // Admin API functions
 export const adminApi = {
   // Get courses for admin dashboard
