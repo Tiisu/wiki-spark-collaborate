@@ -57,7 +57,7 @@ class ApiError extends Error {
   }
 }
 
-async function apiRequest<T>(
+export async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
@@ -448,6 +448,30 @@ export const lessonApi = {
   },
 };
 
+// Learning API functions
+export const learningApi = {
+  // Get user's learning progress
+  getUserProgress: async (): Promise<any> => {
+    const response = await apiRequest<any>('/api/learning/progress');
+    return response.data!;
+  },
+
+  // Mark lesson as completed
+  markLessonComplete: async (lessonId: string): Promise<void> => {
+    await apiRequest(`/api/learning/lessons/${lessonId}/complete`, {
+      method: 'POST',
+    });
+  },
+
+  // Update lesson progress
+  updateLessonProgress: async (lessonId: string, data: { timeSpent?: number; progress?: number }): Promise<void> => {
+    await apiRequest(`/api/learning/lessons/${lessonId}/progress`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+};
+
 // Admin API functions
 export const adminApi = {
   // Get courses for admin dashboard
@@ -472,6 +496,34 @@ export const adminApi = {
   // Get analytics
   getAnalytics: async (): Promise<any> => {
     const response = await apiRequest('/api/admin/analytics');
+    return response.data!;
+  },
+
+  // Get users
+  getUsers: async (params?: {
+    page?: number;
+    limit?: number;
+    role?: string;
+    search?: string;
+  }): Promise<{ users: any[]; pagination: any }> => {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.role) queryParams.append('role', params.role);
+    if (params?.search) queryParams.append('search', params.search);
+
+    const response = await apiRequest<{ users: any[]; pagination: any }>(
+      `/api/admin/users?${queryParams.toString()}`
+    );
+    return response.data!;
+  },
+
+  // Update user role
+  updateUserRole: async (userId: string, role: string): Promise<any> => {
+    const response = await apiRequest(`/api/admin/users/${userId}/role`, {
+      method: 'PATCH',
+      body: JSON.stringify({ role })
+    });
     return response.data!;
   },
 

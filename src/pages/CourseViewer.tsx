@@ -21,7 +21,7 @@ import {
   Trophy
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { courseApi } from '@/lib/api';
+import { courseApi, learningApi } from '@/lib/api';
 
 interface Course {
   id: string;
@@ -297,25 +297,23 @@ const CourseViewer = () => {
 
   // Update lesson progress mutation
   const updateProgressMutation = useMutation({
-    mutationFn: async ({ lessonId, progress }: { lessonId: string; progress: number }) => {
-      // Mock API call - replace with actual implementation
-      console.log('Updating progress:', { lessonId, progress });
-      return { success: true };
+    mutationFn: async ({ lessonId, timeSpent }: { lessonId: string; timeSpent?: number }) => {
+      await learningApi.updateLessonProgress(lessonId, { timeSpent });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['course', courseId] });
+      queryClient.invalidateQueries({ queryKey: ['student-progress'] });
     }
   });
 
   // Complete lesson mutation
   const completeLessonMutation = useMutation({
     mutationFn: async (lessonId: string) => {
-      // Mock API call - replace with actual implementation
-      console.log('Completing lesson:', lessonId);
-      return { success: true };
+      await learningApi.markLessonComplete(lessonId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['course', courseId] });
+      queryClient.invalidateQueries({ queryKey: ['student-progress'] });
       toast({
         title: 'Lesson completed!',
         description: 'Great job! You\'ve completed this lesson.',
@@ -343,8 +341,8 @@ const CourseViewer = () => {
     }
   }, [allLessons, selectedLessonId]);
 
-  const handleLessonProgress = (lessonId: string, progress: number) => {
-    updateProgressMutation.mutate({ lessonId, progress });
+  const handleLessonProgress = (lessonId: string, timeSpent: number) => {
+    updateProgressMutation.mutate({ lessonId, timeSpent });
   };
 
   const handleLessonComplete = (lessonId: string) => {

@@ -72,7 +72,7 @@ interface Lesson {
 interface LessonViewerProps {
   lesson: Lesson;
   onComplete: (lessonId: string) => void;
-  onProgress: (lessonId: string, progress: number) => void;
+  onProgress: (lessonId: string, timeSpent: number) => void;
   onQuizComplete?: (lessonId: string, attempt: QuizAttempt) => void;
   onNext?: () => void;
   onPrevious?: () => void;
@@ -97,17 +97,34 @@ export function LessonViewer({
   const [videoProgress, setVideoProgress] = useState(0);
   const [showQuizModal, setShowQuizModal] = useState(false);
   const [quizAttempt, setQuizAttempt] = useState<QuizAttempt | undefined>(lesson.quizAttempt);
+  const [startTime] = useState(Date.now());
+  const [lastProgressUpdate, setLastProgressUpdate] = useState(Date.now());
 
   useEffect(() => {
     setCurrentProgress(lesson.progress);
     setIsCompleted(lesson.isCompleted);
   }, [lesson]);
 
+  // Track time spent and update progress periodically
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const timeSpent = Math.floor((now - startTime) / 1000); // in seconds
+
+      // Update progress every 30 seconds
+      if (now - lastProgressUpdate > 30000) {
+        onProgress(lesson.id, timeSpent);
+        setLastProgressUpdate(now);
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [lesson.id, onProgress, startTime, lastProgressUpdate]);
+
   const handleVideoProgress = (progress: number) => {
     setVideoProgress(progress);
     const newProgress = Math.max(currentProgress, progress);
     setCurrentProgress(newProgress);
-    onProgress(lesson.id, newProgress);
 
     // Auto-complete when video reaches 90%
     if (progress >= 90 && !isCompleted) {

@@ -32,6 +32,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/api';
 
 interface User {
   _id: string;
@@ -53,7 +54,7 @@ const UserManagement = () => {
   const [roleFilter, setRoleFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
 
-  const { data: usersData, isLoading } = useQuery({
+  const { data: usersData, isLoading, error } = useQuery({
     queryKey: ['admin-users', currentPage, roleFilter, searchTerm],
     queryFn: async () => {
       const params = new URLSearchParams({
@@ -63,37 +64,18 @@ const UserManagement = () => {
         ...(searchTerm && { search: searchTerm })
       });
 
-      const response = await fetch(`/api/admin/users?${params}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch users');
-      }
-
-      return response.json();
+      const response = await apiRequest(`/api/admin/users?${params}`);
+      return response;
     }
   });
 
   const updateUserRoleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
-      const response = await fetch(`/api/admin/users/${userId}/role`, {
+      const response = await apiRequest(`/api/admin/users/${userId}/role`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-        },
         body: JSON.stringify({ role })
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to update user role');
-      }
-
-      return response.json();
+      return response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
@@ -189,6 +171,20 @@ const UserManagement = () => {
         {/* Users Table */}
         {isLoading ? (
           <div className="text-center py-8">Loading users...</div>
+        ) : error ? (
+          <div className="text-center py-8">
+            <div className="text-red-600 mb-2">Failed to load users</div>
+            <div className="text-sm text-gray-500">
+              {error instanceof Error ? error.message : 'Unknown error occurred'}
+            </div>
+            <Button
+              variant="outline"
+              className="mt-4"
+              onClick={() => window.location.reload()}
+            >
+              Retry
+            </Button>
+          </div>
         ) : users.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             No users found

@@ -1,9 +1,9 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { 
-  Users, 
-  BookOpen, 
-  BarChart3, 
+import {
+  Users,
+  BookOpen,
+  BarChart3,
   TrendingUp,
   TrendingDown,
   Activity,
@@ -13,6 +13,7 @@ import {
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { adminApi } from '@/lib/api';
 
 interface AnalyticsData {
   overview: {
@@ -47,21 +48,9 @@ interface AnalyticsData {
 }
 
 const Analytics = () => {
-  const { data: analyticsData, isLoading } = useQuery({
+  const { data: analyticsData, isLoading, error } = useQuery({
     queryKey: ['admin-analytics'],
-    queryFn: async () => {
-      const response = await fetch('/api/admin/analytics', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch analytics');
-      }
-
-      return response.json();
-    },
+    queryFn: () => adminApi.getAnalytics(),
     refetchInterval: 30000, // Refetch every 30 seconds
   });
 
@@ -85,12 +74,23 @@ const Analytics = () => {
     );
   }
 
-  const analytics: AnalyticsData = analyticsData?.data;
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <div className="text-red-600 mb-2">Failed to load analytics data</div>
+        <div className="text-sm text-gray-500">
+          {error instanceof Error ? error.message : 'Unknown error occurred'}
+        </div>
+      </div>
+    );
+  }
+
+  const analytics: AnalyticsData = analyticsData;
 
   if (!analytics) {
     return (
       <div className="text-center py-8 text-gray-500">
-        Failed to load analytics data
+        No analytics data available
       </div>
     );
   }

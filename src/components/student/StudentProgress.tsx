@@ -1,10 +1,10 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { 
-  BookOpen, 
-  Clock, 
-  Award, 
-  TrendingUp, 
+import {
+  BookOpen,
+  Clock,
+  Award,
+  TrendingUp,
   Target,
   Calendar,
   CheckCircle,
@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import LoadingSkeleton from '@/components/ui/loading-skeleton';
 import { Link } from 'react-router-dom';
+import { learningApi } from '@/lib/api';
 
 interface StudentProgressProps {
   detailed?: boolean;
@@ -51,51 +52,13 @@ interface ProgressData {
 }
 
 const StudentProgress: React.FC<StudentProgressProps> = ({ detailed = false }) => {
-  const { data: progressData, isLoading } = useQuery({
+  const { data: progressData, isLoading, error } = useQuery({
     queryKey: ['student-progress'],
-    queryFn: async () => {
-      // Mock data for now - replace with actual API call
-      return {
-        overview: {
-          coursesEnrolled: 3,
-          coursesCompleted: 1,
-          lessonsCompleted: 24,
-          totalLessons: 45,
-          studyTimeHours: 18.5,
-          communityPoints: 1250,
-          currentStreak: 7,
-          weeklyGoalProgress: 75,
-        },
-        recentActivity: [
-          {
-            id: '1',
-            type: 'lesson_completed' as const,
-            title: 'Wikipedia Editing Basics',
-            courseName: 'Introduction to Wikipedia',
-            timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          },
-          {
-            id: '2',
-            type: 'achievement_earned' as const,
-            title: 'First Edit Achievement',
-            timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-          },
-          {
-            id: '3',
-            type: 'course_started' as const,
-            title: 'Advanced Wikipedia Techniques',
-            timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-          },
-        ],
-        weeklyStats: {
-          lessonsThisWeek: 6,
-          hoursThisWeek: 4.5,
-          goalLessons: 8,
-          goalHours: 6,
-        },
-      };
-    },
+    queryFn: learningApi.getUserProgress,
     refetchInterval: 30000,
+    retry: 2,
+    staleTime: 5 * 60 * 1000, // Consider data stale after 5 minutes
+    cacheTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
   });
 
   if (isLoading) {
@@ -110,6 +73,37 @@ const StudentProgress: React.FC<StudentProgressProps> = ({ detailed = false }) =
           </div>
         )}
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="text-center text-red-600">
+            <p>Failed to load progress data. Please try again later.</p>
+            <Button
+              variant="outline"
+              className="mt-4"
+              onClick={() => window.location.reload()}
+            >
+              Retry
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!progressData) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="text-center text-muted-foreground">
+            <p>No progress data available yet. Start taking courses to see your progress!</p>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
