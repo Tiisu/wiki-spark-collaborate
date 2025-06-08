@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { 
-  Award, 
-  Star, 
-  Trophy, 
-  Medal, 
+import {
+  Award,
+  Star,
+  Trophy,
+  Medal,
   Target,
   BookOpen,
   Users,
@@ -20,6 +20,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import LoadingSkeleton from '@/components/ui/loading-skeleton';
+import { achievementApi } from '@/lib/api';
 
 interface Achievement {
   id: string;
@@ -47,117 +48,11 @@ interface AchievementStats {
 const Achievements = () => {
   const [activeCategory, setActiveCategory] = useState('all');
 
-  const { data: achievementsData, isLoading } = useQuery({
+  const { data: achievementsData, isLoading, error } = useQuery({
     queryKey: ['achievements'],
-    queryFn: async () => {
-      // Mock data - replace with actual API call
-      const mockAchievements: Achievement[] = [
-        {
-          id: '1',
-          title: 'First Steps',
-          description: 'Complete your first Wikipedia lesson',
-          category: 'learning',
-          type: 'bronze',
-          icon: '🎯',
-          isUnlocked: true,
-          unlockedAt: '2024-01-15T10:30:00Z',
-          points: 50,
-          rarity: 'common'
-        },
-        {
-          id: '2',
-          title: 'Editor in Training',
-          description: 'Make your first Wikipedia edit',
-          category: 'learning',
-          type: 'bronze',
-          icon: '✏️',
-          isUnlocked: true,
-          unlockedAt: '2024-01-16T14:20:00Z',
-          points: 100,
-          rarity: 'common'
-        },
-        {
-          id: '3',
-          title: 'Knowledge Seeker',
-          description: 'Complete 5 courses',
-          category: 'learning',
-          type: 'silver',
-          icon: '📚',
-          isUnlocked: false,
-          progress: 2,
-          maxProgress: 5,
-          points: 250,
-          rarity: 'uncommon'
-        },
-        {
-          id: '4',
-          title: 'Community Helper',
-          description: 'Help 10 other learners in discussions',
-          category: 'community',
-          type: 'silver',
-          icon: '🤝',
-          isUnlocked: false,
-          progress: 3,
-          maxProgress: 10,
-          points: 200,
-          rarity: 'uncommon'
-        },
-        {
-          id: '5',
-          title: 'Week Warrior',
-          description: 'Study for 7 consecutive days',
-          category: 'milestone',
-          type: 'gold',
-          icon: '🔥',
-          isUnlocked: true,
-          unlockedAt: '2024-01-20T09:15:00Z',
-          points: 500,
-          rarity: 'rare'
-        },
-        {
-          id: '6',
-          title: 'Wikipedia Master',
-          description: 'Complete the Wikipedia Editor Mastery path',
-          category: 'milestone',
-          type: 'platinum',
-          icon: '👑',
-          isUnlocked: false,
-          progress: 2,
-          maxProgress: 6,
-          points: 1000,
-          rarity: 'legendary'
-        },
-        {
-          id: '7',
-          title: 'Speed Learner',
-          description: 'Complete a course in under 2 hours',
-          category: 'special',
-          type: 'gold',
-          icon: '⚡',
-          isUnlocked: false,
-          points: 300,
-          rarity: 'rare'
-        }
-      ];
-
-      const stats: AchievementStats = {
-        totalPoints: mockAchievements
-          .filter(a => a.isUnlocked)
-          .reduce((sum, a) => sum + a.points, 0),
-        unlockedCount: mockAchievements.filter(a => a.isUnlocked).length,
-        totalCount: mockAchievements.length,
-        recentAchievements: mockAchievements
-          .filter(a => a.isUnlocked && a.unlockedAt)
-          .sort((a, b) => new Date(b.unlockedAt!).getTime() - new Date(a.unlockedAt!).getTime())
-          .slice(0, 3),
-        nextAchievements: mockAchievements
-          .filter(a => !a.isUnlocked && a.progress !== undefined)
-          .sort((a, b) => (b.progress! / b.maxProgress!) - (a.progress! / a.maxProgress!))
-          .slice(0, 3)
-      };
-
-      return { achievements: mockAchievements, stats };
-    },
+    queryFn: achievementApi.getUserAchievements,
+    refetchInterval: 60000, // Refetch every minute
+    staleTime: 5 * 60 * 1000, // Consider data stale after 5 minutes
   });
 
   if (isLoading) {
@@ -168,6 +63,18 @@ const Achievements = () => {
           <LoadingSkeleton variant="card" count={6} />
         </div>
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="text-center text-red-600">
+            <p>Failed to load achievements. Please try again later.</p>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 

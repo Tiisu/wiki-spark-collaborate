@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { 
-  Calendar, 
-  Clock, 
-  Target, 
-  CheckCircle, 
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  Calendar,
+  Clock,
+  Target,
+  CheckCircle,
   Plus,
   Edit,
   Trash2,
@@ -19,7 +19,14 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import LoadingSkeleton from '@/components/ui/loading-skeleton';
+import { studyGoalApi, learningApi } from '@/lib/api';
+import { useToast } from '@/hooks/use-toast';
 
 interface StudySession {
   id: string;
@@ -39,9 +46,10 @@ interface WeeklyGoal {
   title: string;
   target: number;
   current: number;
-  unit: 'lessons' | 'hours' | 'courses';
+  unit: 'lessons' | 'hours' | 'courses' | 'points';
   deadline: string;
   isCompleted: boolean;
+  description?: string;
 }
 
 interface StudyPlanData {
@@ -59,113 +67,101 @@ interface StudyPlanData {
 
 const StudyPlan = () => {
   const [activeView, setActiveView] = useState('today');
-
-  const { data: studyPlanData, isLoading } = useQuery({
-    queryKey: ['study-plan'],
-    queryFn: async () => {
-      // Mock data - replace with actual API call
-      const mockData: StudyPlanData = {
-        weeklyGoals: [
-          {
-            id: '1',
-            title: 'Complete 5 lessons',
-            target: 5,
-            current: 3,
-            unit: 'lessons',
-            deadline: '2024-01-28',
-            isCompleted: false
-          },
-          {
-            id: '2',
-            title: 'Study 6 hours',
-            target: 6,
-            current: 4.5,
-            unit: 'hours',
-            deadline: '2024-01-28',
-            isCompleted: false
-          },
-          {
-            id: '3',
-            title: 'Finish Wikipedia Basics',
-            target: 1,
-            current: 1,
-            unit: 'courses',
-            deadline: '2024-01-25',
-            isCompleted: true
-          }
-        ],
-        upcomingSessions: [
-          {
-            id: '1',
-            title: 'Article Structure Basics',
-            courseId: 'formatting-201',
-            courseName: 'Article Structure & Formatting',
-            scheduledDate: '2024-01-22T14:00:00Z',
-            duration: 45,
-            status: 'scheduled',
-            type: 'lesson',
-            priority: 'high'
-          },
-          {
-            id: '2',
-            title: 'Citation Practice',
-            courseId: 'formatting-201',
-            courseName: 'Article Structure & Formatting',
-            scheduledDate: '2024-01-22T19:30:00Z',
-            duration: 30,
-            status: 'scheduled',
-            type: 'practice',
-            priority: 'medium'
-          },
-          {
-            id: '3',
-            title: 'Research Methods Overview',
-            courseId: 'research-301',
-            courseName: 'Research & Verification',
-            scheduledDate: '2024-01-23T10:00:00Z',
-            duration: 60,
-            status: 'scheduled',
-            type: 'lesson',
-            priority: 'medium'
-          }
-        ],
-        todaySessions: [
-          {
-            id: '4',
-            title: 'Morning Review',
-            courseId: 'basics-101',
-            courseName: 'Wikipedia Basics',
-            scheduledDate: '2024-01-22T09:00:00Z',
-            duration: 20,
-            status: 'completed',
-            type: 'review',
-            priority: 'low',
-            completedAt: '2024-01-22T09:18:00Z'
-          },
-          {
-            id: '5',
-            title: 'Wiki Markup Practice',
-            courseId: 'formatting-201',
-            courseName: 'Article Structure & Formatting',
-            scheduledDate: '2024-01-22T16:00:00Z',
-            duration: 40,
-            status: 'in-progress',
-            type: 'practice',
-            priority: 'high'
-          }
-        ],
-        weeklyStats: {
-          plannedHours: 8,
-          completedHours: 5.5,
-          plannedSessions: 12,
-          completedSessions: 8,
-          streak: 5
-        }
-      };
-
-      return mockData;
-    },
+  const [showCreateGoal, setShowCreateGoal] = useState(false);
+  const [newGoal, setNewGoal] = useState({
+    title: '',
+    description: '',
+    target: '',
+    unit: 'lessons' as 'lessons' | 'hours' | 'courses' | 'points',
+    deadline: ''
   });
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Get study goals
+  const { data: goalsData, isLoading: goalsLoading, error: goalsError } = useQuery({
+    queryKey: ['study-goals'],
+    queryFn: studyGoalApi.getUserGoals,
+    refetchInterval: 60000,
+  });
+
+  // Get learning progress for weekly stats
+  const { data: progressData, isLoading: progressLoading } = useQuery({
+    queryKey: ['student-progress'],
+    queryFn: learningApi.getUserProgress,
+    refetchInterval: 60000,
+  });
+
+  // Create goal mutation
+  const createGoalMutation = useMutation({
+    mutationFn: studyGoalApi.createGoal,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['study-goals'] });
+      setShowCreateGoal(false);
+      setNewGoal({
+        title: '',
+        description: '',
+        target: '',
+        unit: 'lessons',
+        deadline: ''
+      });
+      toast({
+        title: 'Goal created',
+        description: 'Your new study goal has been added.',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to create goal',
+        variant: 'destructive',
+      });
+    }
+  });
+
+  // Delete goal mutation
+  const deleteGoalMutation = useMutation({
+    mutationFn: studyGoalApi.deleteGoal,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['study-goals'] });
+      toast({
+        title: 'Goal deleted',
+        description: 'Your study goal has been removed.',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete goal',
+        variant: 'destructive',
+      });
+    }
+  });
+
+  const handleCreateGoal = () => {
+    if (!newGoal.title || !newGoal.target || !newGoal.deadline) {
+      toast({
+        title: 'Error',
+        description: 'Please fill in all required fields',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Set deadline to end of selected day
+    const deadlineDate = new Date(newGoal.deadline);
+    deadlineDate.setHours(23, 59, 59, 999);
+
+    createGoalMutation.mutate({
+      title: newGoal.title,
+      description: newGoal.description || undefined,
+      target: parseInt(newGoal.target),
+      unit: newGoal.unit,
+      deadline: deadlineDate.toISOString()
+    });
+  };
+
+  const isLoading = goalsLoading || progressLoading;
 
   if (isLoading) {
     return (
@@ -178,7 +174,48 @@ const StudyPlan = () => {
     );
   }
 
-  const data = studyPlanData!;
+  if (goalsError) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="text-center text-red-600">
+            <p>Failed to load study plan. Please try again later.</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Transform real data to match component interface
+  const weeklyGoals: WeeklyGoal[] = goalsData?.goals?.map((goal: any) => ({
+    id: goal.id,
+    title: goal.title,
+    target: goal.target,
+    current: goal.current,
+    unit: goal.unit,
+    deadline: goal.deadline,
+    isCompleted: goal.isCompleted,
+    description: goal.description
+  })) || [];
+
+  // Calculate weekly stats from progress data
+  const weeklyStats = {
+    plannedHours: 8, // Default planned hours
+    completedHours: progressData?.weeklyStats?.hoursThisWeek || 0,
+    plannedSessions: 12, // Default planned sessions
+    completedSessions: progressData?.weeklyStats?.lessonsThisWeek || 0,
+    streak: progressData?.overview?.currentStreak || 0
+  };
+
+  const data: StudyPlanData = {
+    weeklyGoals,
+    // For now, use empty arrays for sessions (can be implemented later)
+    upcomingSessions: [],
+    todaySessions: [],
+    weeklyStats
+  };
+
+
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -314,10 +351,91 @@ const StudyPlan = () => {
               </CardTitle>
               <CardDescription className="text-sm">Track your weekly learning objectives</CardDescription>
             </div>
-            <Button size="sm" variant="outline">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Goal
-            </Button>
+            <Dialog open={showCreateGoal} onOpenChange={setShowCreateGoal}>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="outline">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Goal
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Create Study Goal</DialogTitle>
+                  <DialogDescription>
+                    Set a new learning goal to track your progress.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="title">Title *</Label>
+                    <Input
+                      id="title"
+                      value={newGoal.title}
+                      onChange={(e) => setNewGoal({ ...newGoal, title: e.target.value })}
+                      placeholder="e.g., Complete 5 lessons this week"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      value={newGoal.description}
+                      onChange={(e) => setNewGoal({ ...newGoal, description: e.target.value })}
+                      placeholder="Optional description..."
+                      rows={2}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="target">Target *</Label>
+                      <Input
+                        id="target"
+                        type="number"
+                        min="1"
+                        value={newGoal.target}
+                        onChange={(e) => setNewGoal({ ...newGoal, target: e.target.value })}
+                        placeholder="5"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="unit">Unit *</Label>
+                      <Select value={newGoal.unit} onValueChange={(value: any) => setNewGoal({ ...newGoal, unit: value })}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="lessons">Lessons</SelectItem>
+                          <SelectItem value="hours">Hours</SelectItem>
+                          <SelectItem value="courses">Courses</SelectItem>
+                          <SelectItem value="points">Points</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="deadline">Deadline *</Label>
+                    <Input
+                      id="deadline"
+                      type="date"
+                      value={newGoal.deadline}
+                      onChange={(e) => setNewGoal({ ...newGoal, deadline: e.target.value })}
+                      min={new Date().toISOString().split('T')[0]}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setShowCreateGoal(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleCreateGoal}
+                    disabled={createGoalMutation.isPending}
+                  >
+                    {createGoalMutation.isPending ? 'Creating...' : 'Create Goal'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
         </CardHeader>
         <CardContent className="p-4 sm:p-6 pt-0">
@@ -347,9 +465,19 @@ const StudyPlan = () => {
                     Due: {new Date(goal.deadline).toLocaleDateString()}
                   </div>
                 </div>
-                <Button variant="ghost" size="sm">
-                  <Edit className="h-4 w-4" />
-                </Button>
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="sm">
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => deleteGoalMutation.mutate(goal.id)}
+                    disabled={deleteGoalMutation.isPending}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             ))}
           </div>

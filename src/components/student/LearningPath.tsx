@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { 
-  Target, 
-  CheckCircle, 
-  Clock, 
-  BookOpen, 
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  Target,
+  CheckCircle,
+  Clock,
+  BookOpen,
   ArrowRight,
   Lock,
   Star,
@@ -19,6 +19,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import LoadingSkeleton from '@/components/ui/loading-skeleton';
+import { learningPathApi } from '@/lib/api';
+import { useToast } from '@/hooks/use-toast';
 
 interface LearningPathStep {
   id: string;
@@ -47,102 +49,55 @@ interface LearningPath {
 }
 
 const LearningPath = () => {
-  const [selectedPath, setSelectedPath] = useState('wikipedia-editor');
+  const [selectedPath, setSelectedPath] = useState<string>('');
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const { data: pathsData, isLoading } = useQuery({
+  const { data: pathsData, isLoading, error } = useQuery({
     queryKey: ['learning-paths'],
-    queryFn: async () => {
-      // Mock data - replace with actual API call
-      const mockPaths: LearningPath[] = [
-        {
-          id: 'wikipedia-editor',
-          title: 'Wikipedia Editor Mastery',
-          description: 'Complete learning path to become a skilled Wikipedia editor',
-          category: 'Editing',
-          totalSteps: 6,
-          completedSteps: 2,
-          estimatedHours: 25,
-          difficulty: 'Beginner',
-          steps: [
-            {
-              id: '1',
-              title: 'Wikipedia Basics',
-              description: 'Learn the fundamentals of Wikipedia and its community',
-              type: 'course',
-              status: 'completed',
-              progress: 100,
-              estimatedHours: 3,
-              difficulty: 'Beginner',
-              skills: ['Wikipedia Navigation', 'Community Guidelines'],
-              courseId: 'basics-101'
-            },
-            {
-              id: '2',
-              title: 'First Edit Workshop',
-              description: 'Make your first Wikipedia edit with guidance',
-              type: 'project',
-              status: 'completed',
-              progress: 100,
-              estimatedHours: 2,
-              difficulty: 'Beginner',
-              skills: ['Basic Editing', 'Sandbox Usage'],
-              prerequisites: ['1']
-            },
-            {
-              id: '3',
-              title: 'Article Structure & Formatting',
-              description: 'Master Wikipedia markup and article organization',
-              type: 'course',
-              status: 'current',
-              progress: 60,
-              estimatedHours: 5,
-              difficulty: 'Beginner',
-              skills: ['Wiki Markup', 'Article Structure', 'Citations'],
-              prerequisites: ['1', '2'],
-              courseId: 'formatting-201'
-            },
-            {
-              id: '4',
-              title: 'Research & Verification',
-              description: 'Learn to find and verify reliable sources',
-              type: 'course',
-              status: 'available',
-              progress: 0,
-              estimatedHours: 6,
-              difficulty: 'Intermediate',
-              skills: ['Source Verification', 'Research Methods', 'Fact Checking'],
-              prerequisites: ['3']
-            },
-            {
-              id: '5',
-              title: 'Advanced Editing Techniques',
-              description: 'Templates, infoboxes, and complex formatting',
-              type: 'course',
-              status: 'locked',
-              progress: 0,
-              estimatedHours: 7,
-              difficulty: 'Intermediate',
-              skills: ['Templates', 'Infoboxes', 'Advanced Markup'],
-              prerequisites: ['4']
-            },
-            {
-              id: '6',
-              title: 'Editor Certification Assessment',
-              description: 'Demonstrate your Wikipedia editing skills',
-              type: 'assessment',
-              status: 'locked',
-              progress: 0,
-              estimatedHours: 2,
-              difficulty: 'Intermediate',
-              skills: ['Comprehensive Editing'],
-              prerequisites: ['5']
-            }
-          ]
-        }
-      ];
+    queryFn: learningPathApi.getLearningPaths,
+    refetchInterval: 60000,
+    staleTime: 5 * 60 * 1000,
+  });
 
-      return mockPaths;
+  // Start learning path mutation
+  const startPathMutation = useMutation({
+    mutationFn: learningPathApi.startLearningPath,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['learning-paths'] });
+      toast({
+        title: 'Learning path started!',
+        description: 'You can now begin your learning journey.',
+      });
     },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to start learning path',
+        variant: 'destructive',
+      });
+    }
+  });
+
+  // Complete step mutation
+  const completeStepMutation = useMutation({
+    mutationFn: ({ pathId, stepId }: { pathId: string; stepId: string }) =>
+      learningPathApi.completeStep(pathId, stepId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['learning-paths'] });
+      queryClient.invalidateQueries({ queryKey: ['student-progress'] });
+      toast({
+        title: 'Step completed!',
+        description: 'Great progress! Keep going.',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to complete step',
+        variant: 'destructive',
+      });
+    }
   });
 
   if (isLoading) {
@@ -154,7 +109,25 @@ const LearningPath = () => {
     );
   }
 
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="text-center text-red-600">
+            <p>Failed to load learning paths. Please try again later.</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const paths = pathsData || [];
+
+  // Set default selected path if not set
+  if (!selectedPath && paths.length > 0) {
+    setSelectedPath(paths[0].id);
+  }
+
   const currentPath = paths.find(p => p.id === selectedPath) || paths[0];
 
   if (!currentPath) {
@@ -352,10 +325,24 @@ const LearningPath = () => {
                           <span>Requires: Step {step.prerequisites.join(', ')}</span>
                         )}
                       </div>
-                      <Button 
-                        size="sm" 
-                        disabled={step.status === 'locked'}
+                      <Button
+                        size="sm"
+                        disabled={step.status === 'locked' || completeStepMutation.isPending}
                         variant={step.status === 'completed' ? 'outline' : 'default'}
+                        onClick={() => {
+                          if (step.status === 'current' || step.status === 'available') {
+                            if (step.courseId) {
+                              // Navigate to course
+                              window.location.href = `/courses/${step.courseId}`;
+                            } else {
+                              // Complete step directly for non-course steps
+                              completeStepMutation.mutate({
+                                pathId: currentPath.id,
+                                stepId: step.id
+                              });
+                            }
+                          }
+                        }}
                       >
                         {step.status === 'completed' && (
                           <>

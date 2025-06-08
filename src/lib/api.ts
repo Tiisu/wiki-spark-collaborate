@@ -472,6 +472,91 @@ export const learningApi = {
   },
 };
 
+// Study Goals API functions
+export const studyGoalApi = {
+  // Get user's study goals
+  getUserGoals: async (): Promise<any> => {
+    const response = await apiRequest<any>('/api/study-goals');
+    return response.data!;
+  },
+
+  // Create a new study goal
+  createGoal: async (goalData: {
+    title: string;
+    description?: string;
+    target: number;
+    unit: 'lessons' | 'hours' | 'courses' | 'points';
+    deadline: string;
+  }): Promise<any> => {
+    const response = await apiRequest<any>('/api/study-goals', {
+      method: 'POST',
+      body: JSON.stringify(goalData),
+    });
+    return response.data!;
+  },
+
+  // Update a study goal
+  updateGoal: async (goalId: string, goalData: {
+    title?: string;
+    description?: string;
+    target?: number;
+    deadline?: string;
+  }): Promise<any> => {
+    const response = await apiRequest<any>(`/api/study-goals/${goalId}`, {
+      method: 'PUT',
+      body: JSON.stringify(goalData),
+    });
+    return response.data!;
+  },
+
+  // Delete a study goal
+  deleteGoal: async (goalId: string): Promise<void> => {
+    await apiRequest(`/api/study-goals/${goalId}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// Achievements API functions
+export const achievementApi = {
+  // Get user's achievements with progress
+  getUserAchievements: async (): Promise<any> => {
+    const response = await apiRequest<any>('/api/achievements');
+    return response.data!;
+  },
+};
+
+// Learning Paths API functions
+export const learningPathApi = {
+  // Get all learning paths with user progress
+  getLearningPaths: async (): Promise<any> => {
+    const response = await apiRequest<any>('/api/learning-paths');
+    return response.data!;
+  },
+
+  // Start a learning path
+  startLearningPath: async (pathId: string): Promise<any> => {
+    const response = await apiRequest<any>(`/api/learning-paths/${pathId}/start`, {
+      method: 'POST',
+    });
+    return response.data!;
+  },
+
+  // Complete a learning path step
+  completeStep: async (pathId: string, stepId: string): Promise<any> => {
+    const response = await apiRequest<any>(`/api/learning-paths/${pathId}/steps/${stepId}/complete`, {
+      method: 'POST',
+    });
+    return response.data!;
+  },
+
+  // Get user's progress for a specific learning path
+  getUserPathProgress: async (pathId: string): Promise<any> => {
+    const response = await apiRequest<any>(`/api/learning-paths/${pathId}/progress`);
+    return response.data!;
+  },
+};
+
 // Admin API functions
 export const adminApi = {
   // Get courses for admin dashboard
