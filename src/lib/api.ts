@@ -85,6 +85,12 @@ export async function apiRequest<T>(
     const data = await response.json();
 
     if (!response.ok) {
+      // Handle 401 Unauthorized - token might be expired or invalid
+      if (response.status === 401 && token) {
+        console.warn('Authentication failed, clearing token');
+        localStorage.removeItem('auth_token');
+      }
+
       throw new ApiError(
         data.message || 'An error occurred',
         response.status,
@@ -97,7 +103,7 @@ export async function apiRequest<T>(
     if (error instanceof ApiError) {
       throw error;
     }
-    
+
     throw new ApiError('Network error occurred', 0);
   }
 }

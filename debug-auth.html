@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Authentication</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #output {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        input {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 200px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Authentication Debug Tool</h1>
+    
+    <div class="info test-result">
+        <h3>This tool helps debug the authentication flow</h3>
+        <p>Use this to test login, token storage, and API calls</p>
+    </div>
+
+    <div>
+        <h3>Login Test</h3>
+        <input type="email" id="email" placeholder="Email" value="test@example.com">
+        <input type="password" id="password" placeholder="Password" value="password123">
+        <button onclick="testLogin()">Test Login</button>
+    </div>
+
+    <div>
+        <h3>Token Tests</h3>
+        <button onclick="checkToken()">Check Stored Token</button>
+        <button onclick="testCurrentUser()">Test /api/auth/me</button>
+        <button onclick="testCourses()">Test /api/courses</button>
+        <button onclick="clearToken()">Clear Token</button>
+    </div>
+
+    <div>
+        <h3>Navigation Test</h3>
+        <button onclick="openApp()">Open Main App</button>
+        <button onclick="openCourses()">Open Courses Page</button>
+    </div>
+
+    <div id="output"></div>
+
+    <script>
+        const API_BASE = 'http://localhost:3001';
+        
+        function log(message, type = 'info') {
+            const output = document.getElementById('output');
+            const timestamp = new Date().toLocaleTimeString();
+            output.textContent += `[${timestamp}] ${type.toUpperCase()}: ${message}\n`;
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function clearOutput() {
+            document.getElementById('output').textContent = '';
+        }
+
+        async function testLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            log('Testing login...');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password }),
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log('Login successful!', 'success');
+                    log(`Token: ${data.data.token.substring(0, 20)}...`);
+                    log(`User: ${data.data.user.firstName} ${data.data.user.lastName}`);
+                    
+                    // Store token
+                    localStorage.setItem('auth_token', data.data.token);
+                    log('Token stored in localStorage', 'success');
+                } else {
+                    log(`Login failed: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                log(`Login error: ${error.message}`, 'error');
+            }
+        }
+
+        function checkToken() {
+            const token = localStorage.getItem('auth_token');
+            if (token) {
+                log(`Token found: ${token.substring(0, 20)}...`, 'success');
+                log(`Token length: ${token.length}`);
+            } else {
+                log('No token found in localStorage', 'error');
+            }
+        }
+
+        async function testCurrentUser() {
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                log('No token available for /api/auth/me test', 'error');
+                return;
+            }
+            
+            log('Testing /api/auth/me...');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/me`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                    },
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log('/api/auth/me successful!', 'success');
+                    log(`User: ${data.data.user.firstName} ${data.data.user.lastName}`);
+                    log(`Role: ${data.data.user.role}`);
+                } else {
+                    log(`/api/auth/me failed: ${data.message}`, 'error');
+                    log(`Status: ${response.status}`);
+                }
+            } catch (error) {
+                log(`/api/auth/me error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testCourses() {
+            const token = localStorage.getItem('auth_token');
+            
+            log('Testing /api/courses...');
+            
+            try {
+                const headers = {
+                    'Content-Type': 'application/json',
+                };
+                
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                    log('Sending request with token');
+                } else {
+                    log('Sending request without token');
+                }
+                
+                const response = await fetch(`${API_BASE}/api/courses`, {
+                    method: 'GET',
+                    headers,
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log('/api/courses successful!', 'success');
+                    log(`Found ${data.data.courses.length} courses`);
+                    log(`Total pages: ${data.data.totalPages}`);
+                } else {
+                    log(`/api/courses failed: ${data.message}`, 'error');
+                    log(`Status: ${response.status}`);
+                }
+            } catch (error) {
+                log(`/api/courses error: ${error.message}`, 'error');
+            }
+        }
+
+        function clearToken() {
+            localStorage.removeItem('auth_token');
+            log('Token cleared from localStorage', 'info');
+        }
+
+        function openApp() {
+            window.open('http://localhost:8081', '_blank');
+        }
+
+        function openCourses() {
+            window.open('http://localhost:8081/courses', '_blank');
+        }
+
+        // Initial check
+        window.onload = function() {
+            log('Debug tool loaded');
+            checkToken();
+        };
+    </script>
+</body>
+</html>

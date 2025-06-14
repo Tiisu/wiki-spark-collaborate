@@ -29,20 +29,24 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [hasToken, setHasToken] = useState(!!localStorage.getItem('auth_token'));
   const queryClient = useQueryClient();
   const { toast } = useToast();
-
-  // Check if user has a token on mount
-  const hasToken = !!localStorage.getItem('auth_token');
 
   // Fetch current user if token exists
   const {
     data: user,
     isLoading,
+    error,
     refetch: refetchUser,
   } = useQuery({
     queryKey: ['currentUser'],
     queryFn: async () => {
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        throw new Error('No token available');
+      }
+
       try {
         const response = await authApi.getCurrentUser();
         return response.user;
@@ -50,18 +54,49 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.error('Failed to fetch current user:', error);
         // Clear invalid token
         localStorage.removeItem('auth_token');
+        setHasToken(false);
+        setIsAuthenticated(false);
         throw error;
       }
     },
     enabled: hasToken,
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
   });
+
+  // Handle query errors
+  useEffect(() => {
+    if (error && hasToken) {
+      // If we have a token but the query failed, the token might be invalid
+      setHasToken(false);
+      setIsAuthenticated(false);
+      localStorage.removeItem('auth_token');
+      queryClient.removeQueries({ queryKey: ['currentUser'] });
+    }
+  }, [error, hasToken, queryClient]);
 
   // Update authentication state when user data changes
   useEffect(() => {
     setIsAuthenticated(!!user);
   }, [user]);
+
+  // Listen for storage changes (token changes in other tabs)
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'auth_token') {
+        const newToken = e.newValue;
+        setHasToken(!!newToken);
+        if (!newToken) {
+          setIsAuthenticated(false);
+          queryClient.clear();
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [queryClient]);
 
   // Login mutation
   const loginMutation = useMutation({
@@ -69,14 +104,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return authApi.login({ email, password });
     },
     onSuccess: (data) => {
-      setIsAuthenticated(true);
+      // Set user data first, then update states
       queryClient.setQueryData(['currentUser'], data.user);
+      setHasToken(true);
+      setIsAuthenticated(true);
       toast({
         title: "Welcome back!",
         description: "You have successfully logged in.",
       });
     },
     onError: (error: ApiError) => {
+      setHasToken(false);
+      setIsAuthenticated(false);
       toast({
         title: "Login Failed",
         description: error.message,
@@ -89,13 +128,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Register mutation
   const registerMutation = useMutation({
     mutationFn: authApi.register,
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Set user data first, then update states
+      queryClient.setQueryData(['currentUser'], data.user);
+      setHasToken(true);
+      setIsAuthenticated(true);
       toast({
         title: "Registration Successful!",
-        description: "Please check your email for verification instructions.",
+        description: "Welcome to WikiWalkthrough!",
       });
     },
     onError: (error: ApiError) => {
+      setHasToken(false);
+      setIsAuthenticated(false);
       toast({
         title: "Registration Failed",
         description: error.message,
@@ -110,6 +155,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     mutationFn: authApi.logout,
     onSuccess: () => {
       setIsAuthenticated(false);
+      setHasToken(false);
       queryClient.clear();
       toast({
         title: "Logged out",
@@ -119,6 +165,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     onError: (error: ApiError) => {
       // Even if logout fails on server, clear local state
       setIsAuthenticated(false);
+      setHasToken(false);
       queryClient.clear();
       localStorage.removeItem('auth_token');
     },
