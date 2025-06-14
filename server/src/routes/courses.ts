@@ -8,6 +8,7 @@ import {
   getInstructorCourses,
   enrollInCourse,
   getUserEnrollments,
+  getEnrolledCourses,
   updateProgress,
   getCategories,
   getCourseWithProgress
@@ -266,6 +267,46 @@ router.get('/my-courses', authenticate, requireInstructor, getInstructorCourses)
  *         description: Unauthorized
  */
 router.get('/enrollments', authenticate, getUserEnrollments);
+
+/**
+ * @swagger
+ * /api/courses/enrolled:
+ *   get:
+ *     summary: Get user's enrolled courses with pagination
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of courses per page
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [ACTIVE, COMPLETED, DROPPED, SUSPENDED]
+ *         description: Filter by enrollment status
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search in course title and description
+ *     responses:
+ *       200:
+ *         description: Enrolled courses retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/enrolled', authenticate, getEnrolledCourses);
 
 /**
  * @swagger

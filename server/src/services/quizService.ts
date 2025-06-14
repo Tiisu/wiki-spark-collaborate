@@ -60,11 +60,10 @@ class QuizService {
 
       // Remove correct answers if not requested (for student view)
       if (!includeAnswers) {
-        quiz.questions = quiz.questions.map(q => ({
-          ...q,
-          correctAnswer: undefined,
-          explanation: undefined
-        }));
+        quiz.questions = quiz.questions.map(q => {
+          const { correctAnswer, explanation, ...questionWithoutAnswers } = q;
+          return questionWithoutAnswers;
+        }) as any;
       }
 
       return quiz;
@@ -250,7 +249,7 @@ class QuizService {
       for (const achievement of achievements) {
         try {
           await Achievement.create(achievement);
-        } catch (error) {
+        } catch (error: any) {
           // Ignore duplicate key errors (user already has this achievement)
           if (error.code !== 11000) {
             logger.error('Failed to create achievement:', error);

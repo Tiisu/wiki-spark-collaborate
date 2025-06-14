@@ -154,6 +154,61 @@ export const getUserEnrollments = catchAsync(async (req: AuthRequest, res: Respo
   });
 });
 
+// Get enrolled courses (courses with enrollment data)
+export const getEnrolledCourses = catchAsync(async (req: AuthRequest, res: Response) => {
+  if (!req.user) {
+    throw new AppError('User not found', 404);
+  }
+
+  const { page = 1, limit = 10, status, search } = req.query;
+
+  const enrollments = await courseService.getUserEnrollments(req.user._id);
+
+  // Filter enrollments based on query parameters
+  let filteredEnrollments = enrollments;
+
+  if (status) {
+    filteredEnrollments = filteredEnrollments.filter(e => e.status === status);
+  }
+
+  if (search) {
+    const searchTerm = search.toString().toLowerCase();
+    filteredEnrollments = filteredEnrollments.filter(e => {
+      // Check if course is populated (has title property)
+      if (e.course && typeof e.course === 'object' && 'title' in e.course) {
+        const course = e.course as any; // Type assertion for populated course
+        return (
+          (course.title && course.title.toLowerCase().includes(searchTerm)) ||
+          (course.description && course.description.toLowerCase().includes(searchTerm))
+        );
+      }
+      return false;
+    });
+  }
+
+  // Pagination
+  const startIndex = (Number(page) - 1) * Number(limit);
+  const endIndex = startIndex + Number(limit);
+  const paginatedEnrollments = filteredEnrollments.slice(startIndex, endIndex);
+
+  const pagination = {
+    currentPage: Number(page),
+    totalPages: Math.ceil(filteredEnrollments.length / Number(limit)),
+    totalItems: filteredEnrollments.length,
+    hasNext: endIndex < filteredEnrollments.length,
+    hasPrev: startIndex > 0
+  };
+
+  res.status(200).json({
+    success: true,
+    message: 'Enrolled courses retrieved successfully',
+    data: {
+      enrollments: paginatedEnrollments,
+      pagination
+    }
+  });
+});
+
 // Update lesson progress
 export const updateProgress = catchAsync(async (req: AuthRequest, res: Response) => {
   if (!req.user) {

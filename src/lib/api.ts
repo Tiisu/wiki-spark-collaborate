@@ -167,7 +167,12 @@ export interface Course {
   id: string;
   title: string;
   description: string;
-  instructor: string;
+  instructor: string | {
+    _id: string;
+    username: string;
+    firstName: string;
+    lastName: string;
+  };
   thumbnail?: string;
   totalLessons: number;
   completedLessons: number;

@@ -22,12 +22,18 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { courseApi, learningApi } from '@/lib/api';
+import { getInstructorName } from '@/utils/instructorUtils';
 
 interface Course {
   id: string;
   title: string;
   description: string;
-  instructor: string;
+  instructor: string | {
+    _id: string;
+    username: string;
+    firstName: string;
+    lastName: string;
+  };
   thumbnail?: string;
   totalLessons: number;
   completedLessons: number;
@@ -91,9 +97,11 @@ const CourseViewer = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+
+
 
   // Fetch course data
   const { data: course, isLoading, error } = useQuery({
@@ -457,7 +465,7 @@ const CourseViewer = () => {
                   <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                     <div className="flex items-center space-x-1">
                       <Users className="h-4 w-4" />
-                      <span>{course.instructor}</span>
+                      <span>{getInstructorName(course.instructor)}</span>
                     </div>
                     <div className="flex items-center space-x-1">
                       <Clock className="h-4 w-4" />

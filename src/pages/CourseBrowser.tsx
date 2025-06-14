@@ -20,12 +20,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { courseApi } from '@/lib/api';
 import Header from '@/components/Header';
+import { getInstructorName } from '@/utils/instructorUtils';
 
 interface Course {
   id: string;
   title: string;
   description: string;
-  instructor: string;
+  instructor: string | {
+    _id: string;
+    username: string;
+    firstName: string;
+    lastName: string;
+  };
   thumbnail?: string;
   totalLessons: number;
   estimatedHours: number;
@@ -83,7 +89,11 @@ const CourseBrowser = () => {
   const courses = coursesData?.courses || [];
   const pagination = coursesData?.pagination;
 
-  const getDifficultyColor = (difficulty: string) => {
+  const getDifficultyColor = (difficulty: string | undefined) => {
+    if (!difficulty) {
+      return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400';
+    }
+
     switch (difficulty.toLowerCase()) {
       case 'beginner':
         return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
@@ -95,6 +105,8 @@ const CourseBrowser = () => {
         return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400';
     }
   };
+
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted">
@@ -199,7 +211,7 @@ const CourseBrowser = () => {
                   {/* Course Info */}
                   <div className="flex flex-wrap gap-2 text-xs">
                     <Badge className={getDifficultyColor(course.difficulty)}>
-                      {course.difficulty}
+                      {course.difficulty || 'Unknown'}
                     </Badge>
                     <Badge variant="outline">
                       {course.category}
@@ -218,7 +230,7 @@ const CourseBrowser = () => {
                   <div className="flex items-center justify-between text-sm text-gray-600">
                     <div className="flex items-center gap-1">
                       <Users className="h-4 w-4" />
-                      <span>{course.instructor}</span>
+                      <span>{getInstructorName(course.instructor)}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Star className="h-4 w-4 text-yellow-500" />

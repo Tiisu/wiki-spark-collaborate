@@ -2,7 +2,8 @@ import mongoose from 'mongoose';
 import Course, { CourseLevel, CourseStatus } from '../models/Course';
 import Module from '../models/Module';
 import Lesson, { LessonType } from '../models/Lesson';
-import User, { UserRole } from '../models/User';
+import User from '../models/User';
+import { UserRole } from '../types';
 import Quiz, { QuestionType } from '../models/Quiz';
 import logger from '../utils/logger';
 

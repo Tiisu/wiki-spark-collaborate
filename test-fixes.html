@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test React Fixes</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #console-output {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>React Error Fixes Test</h1>
+    
+    <div class="info test-result">
+        <h3>Testing for React Errors:</h3>
+        <ul>
+            <li>Missing key props in lists</li>
+            <li>Objects being rendered as React children</li>
+            <li>Instructor field object rendering issue</li>
+        </ul>
+    </div>
+
+    <button onclick="openCourseBrowser()">Open Course Browser</button>
+    <button onclick="checkConsoleErrors()">Check Console Errors</button>
+    <button onclick="clearResults()">Clear Results</button>
+
+    <div id="results"></div>
+    <div id="console-output"></div>
+
+    <script>
+        let consoleErrors = [];
+        let consoleWarnings = [];
+
+        // Capture console errors and warnings
+        const originalError = console.error;
+        const originalWarn = console.warn;
+
+        console.error = function(...args) {
+            consoleErrors.push(args.join(' '));
+            originalError.apply(console, args);
+        };
+
+        console.warn = function(...args) {
+            consoleWarnings.push(args.join(' '));
+            originalWarn.apply(console, args);
+        };
+
+        function openCourseBrowser() {
+            window.open('http://localhost:8081/courses', '_blank');
+            addResult('info', 'Opened Course Browser in new tab. Check for React errors in the browser console.');
+        }
+
+        function checkConsoleErrors() {
+            const reactKeyErrors = consoleErrors.filter(error => 
+                error.includes('Each child in a list should have a unique "key" prop') ||
+                error.includes('Warning: Each child in a list should have a unique "key" prop')
+            );
+
+            const objectRenderErrors = consoleErrors.filter(error => 
+                error.includes('Objects are not valid as a React child') ||
+                error.includes('object with keys')
+            );
+
+            const instructorErrors = consoleErrors.filter(error => 
+                error.includes('instructor') ||
+                error.includes('firstName') ||
+                error.includes('lastName')
+            );
+
+            let resultHtml = '<h3>Console Error Analysis:</h3>';
+            
+            if (reactKeyErrors.length === 0) {
+                resultHtml += '<div class="success test-result">✅ No "missing key prop" errors found</div>';
+            } else {
+                resultHtml += `<div class="error test-result">❌ Found ${reactKeyErrors.length} key prop errors</div>`;
+            }
+
+            if (objectRenderErrors.length === 0) {
+                resultHtml += '<div class="success test-result">✅ No "objects as React children" errors found</div>';
+            } else {
+                resultHtml += `<div class="error test-result">❌ Found ${objectRenderErrors.length} object rendering errors</div>`;
+            }
+
+            if (instructorErrors.length === 0) {
+                resultHtml += '<div class="success test-result">✅ No instructor-related errors found</div>';
+            } else {
+                resultHtml += `<div class="error test-result">❌ Found ${instructorErrors.length} instructor-related errors</div>`;
+            }
+
+            resultHtml += `<div class="info test-result">Total console errors: ${consoleErrors.length}</div>`;
+            resultHtml += `<div class="info test-result">Total console warnings: ${consoleWarnings.length}</div>`;
+
+            document.getElementById('results').innerHTML = resultHtml;
+
+            // Show recent console output
+            const recentOutput = [...consoleErrors.slice(-5), ...consoleWarnings.slice(-5)];
+            document.getElementById('console-output').textContent = 
+                'Recent Console Output:\n' + recentOutput.join('\n');
+        }
+
+        function addResult(type, message) {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `${type} test-result`;
+            resultDiv.textContent = message;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+            document.getElementById('console-output').textContent = '';
+            consoleErrors = [];
+            consoleWarnings = [];
+            addResult('info', 'Results cleared. Console error tracking reset.');
+        }
+
+        // Initial message
+        addResult('info', 'Test page loaded. Click "Open Course Browser" to test the fixes, then "Check Console Errors" to analyze results.');
+    </script>
+</body>
+</html>

@@ -30,12 +30,18 @@ import {
 } from '@/components/ui/dropdown-menu';
 import LoadingSkeleton from '@/components/ui/loading-skeleton';
 import { courseApi } from '@/lib/api';
+import { getInstructorName } from '@/utils/instructorUtils';
 
 interface Course {
   id: string;
   title: string;
   description: string;
-  instructor: string;
+  instructor: string | {
+    _id: string;
+    username: string;
+    firstName: string;
+    lastName: string;
+  };
   thumbnail?: string;
   progress: number;
   totalLessons: number;
@@ -55,6 +61,8 @@ const EnrolledCourses = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [sortBy, setSortBy] = useState('recent');
+
+
 
   const { data: coursesData, isLoading, error } = useQuery({
     queryKey: ['enrolled-courses', searchTerm, filterStatus, sortBy],
@@ -292,7 +300,7 @@ const EnrolledCourses = () => {
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-1 text-gray-600">
                     <User className="h-3 w-3" />
-                    {course.instructor}
+                    {getInstructorName(course.instructor)}
                   </div>
                   <div className="flex items-center gap-1">
                     <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
