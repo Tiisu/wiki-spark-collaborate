@@ -9,7 +9,10 @@
     "start": "node dist/server.js",
     "test": "jest",
     "lint": "eslint src/**/*.ts",
-    "lint:fix": "eslint src/**/*.ts --fix"
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "seed": "ts-node src/seeds/seedDatabase.ts",
+    "seed:courses": "ts-node src/seeds/seedDatabase.ts",
+    "create:admin": "ts-node src/seeds/createAdmin.ts"
   },
   "dependencies": {
     "express": "^4.18.2",

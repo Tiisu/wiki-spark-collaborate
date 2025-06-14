@@ -1,6 +1,6 @@
 # WikiWalkthrough
 
-A Wikimedia education platform that helps users learn to contribute effectively to Wikipedia through structured learning paths, community collaboration, and expert mentorship.
+A comprehensive Wikimedia education platform that helps users learn to contribute effectively to Wikipedia and its sister projects through structured learning paths, interactive exercises, community collaboration, and expert mentorship. Built like Udemy but specifically focused on Wikipedia contribution skills.
 
 ## Features
 
@@ -35,11 +35,34 @@ A Wikimedia education platform that helps users learn to contribute effectively 
 - Toast notifications and loading states
 - Password strength indicator
 
+### ✅ Wikipedia-Specific Features
+
+#### Course Content & Structure
+- **Wikipedia-focused curriculum**: Comprehensive courses covering editing basics, citation guidelines, content policies, conflict resolution, and advanced techniques
+- **Sister project courses**: Specialized training for Wikimedia Commons, Wikidata, Wiktionary, Wikibooks, and other projects
+- **Skill-based learning paths**: Structured progression from beginner to advanced Wikipedia editing
+- **Interactive Wikipedia editor**: Practice editing in sandbox, guided, and live modes
+- **Assessment and certification**: Competency-based evaluations with digital certificates
+
+#### Learning Experience
+- **Interactive editing exercises**: Hands-on practice with real Wikipedia markup and tools
+- **Wikipedia sandbox integration**: Safe practice environment for new editors
+- **Live editing capabilities**: Transition to real Wikipedia editing with guidance
+- **Progress tracking**: Monitor learning objectives and skill acquisition
+- **Prerequisite management**: Structured learning paths with course dependencies
+
+#### Community & Collaboration
+- **Peer review system**: Practice giving and receiving feedback on Wikipedia contributions
+- **Mentorship matching**: Connect learners with experienced Wikipedia editors
+- **Discussion forums**: Course-specific and general Wikipedia editing discussions
+- **Study groups**: Collaborative learning opportunities
+
 ### 🚧 In Development
-- Course management system
-- Learning progress tracking
-- Community features (forums, mentorship)
-- Achievement and certification system
+- Advanced gamification features
+- Real-time collaboration tools
+- Wikipedia API integration for live statistics
+- Mobile app development
+- Multi-language course content
 
 ## Getting Started
 
@@ -100,10 +123,42 @@ A Wikimedia education platform that helps users learn to contribute effectively 
    npm run dev
    ```
 
-6. **Access the Application**
+6. **Seed the Database with Wikipedia Courses**
+   ```bash
+   # From server directory
+   npm run seed
+   ```
+
+7. **Access the Application**
    - Frontend: http://localhost:5173 (or the port shown in terminal)
    - Backend API: http://localhost:3001
    - API Documentation: http://localhost:3001/api-docs
+
+## Wikipedia Course Catalog
+
+The platform includes a comprehensive curriculum designed to teach Wikipedia contribution skills:
+
+### Beginner Courses
+- **Wikipedia Editing Fundamentals** - Learn the basics of editing Wikipedia articles
+- **Wikitext Markup Mastery** - Master the markup language used in Wikipedia
+- **Reliable Sources and Citations** - Understand how to find and cite reliable sources
+
+### Intermediate Courses
+- **Wikipedia Content Policies Deep Dive** - Master NPOV, Verifiability, and No Original Research
+- **Article Creation Workshop** - Learn to create new Wikipedia articles from scratch
+- **Community Collaboration and Conflict Resolution** - Handle disagreements and build consensus
+
+### Advanced Courses
+- **Advanced Wikipedia Editing Techniques** - Complex templates, parser functions, and Lua scripting
+- **Wikimedia Commons: Media and Licensing** - Contribute media files and understand copyright
+- **Wikidata Editing and Structured Data** - Work with structured data and SPARQL queries
+
+### Course Features
+- **Interactive exercises** with real Wikipedia editing practice
+- **Assessment and certification** for completed courses
+- **Prerequisite tracking** to ensure proper learning progression
+- **Skill-based learning objectives** with clear outcomes
+- **Multiple Wikipedia projects** including Commons, Wikidata, and more
 
 ## User Registration Flow
 

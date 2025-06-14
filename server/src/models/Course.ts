@@ -12,12 +12,63 @@ export enum CourseStatus {
   ARCHIVED = 'ARCHIVED'
 }
 
+export enum WikipediaProject {
+  WIKIPEDIA = 'WIKIPEDIA',
+  COMMONS = 'COMMONS',
+  WIKTIONARY = 'WIKTIONARY',
+  WIKIBOOKS = 'WIKIBOOKS',
+  WIKISOURCE = 'WIKISOURCE',
+  WIKIDATA = 'WIKIDATA',
+  WIKINEWS = 'WIKINEWS',
+  WIKIQUOTE = 'WIKIQUOTE',
+  WIKIVERSITY = 'WIKIVERSITY',
+  WIKIVOYAGE = 'WIKIVOYAGE'
+}
+
+export enum CourseCategory {
+  // Wikipedia Editing Fundamentals
+  EDITING_BASICS = 'EDITING_BASICS',
+  WIKITEXT_MARKUP = 'WIKITEXT_MARKUP',
+  ARTICLE_CREATION = 'ARTICLE_CREATION',
+
+  // Content & Sourcing
+  CITATION_SOURCING = 'CITATION_SOURCING',
+  RELIABLE_SOURCES = 'RELIABLE_SOURCES',
+  FACT_CHECKING = 'FACT_CHECKING',
+
+  // Policies & Guidelines
+  CONTENT_POLICIES = 'CONTENT_POLICIES',
+  BEHAVIORAL_GUIDELINES = 'BEHAVIORAL_GUIDELINES',
+  COPYRIGHT_LICENSING = 'COPYRIGHT_LICENSING',
+
+  // Community & Collaboration
+  CONFLICT_RESOLUTION = 'CONFLICT_RESOLUTION',
+  COMMUNITY_ENGAGEMENT = 'COMMUNITY_ENGAGEMENT',
+  PEER_REVIEW = 'PEER_REVIEW',
+
+  // Advanced Techniques
+  ADVANCED_EDITING = 'ADVANCED_EDITING',
+  TEMPLATE_CREATION = 'TEMPLATE_CREATION',
+  BOT_AUTOMATION = 'BOT_AUTOMATION',
+
+  // Sister Projects
+  COMMONS_MEDIA = 'COMMONS_MEDIA',
+  WIKTIONARY_EDITING = 'WIKTIONARY_EDITING',
+  WIKIBOOKS_AUTHORING = 'WIKIBOOKS_AUTHORING',
+  WIKIDATA_EDITING = 'WIKIDATA_EDITING',
+
+  // Specialized Topics
+  ACADEMIC_WRITING = 'ACADEMIC_WRITING',
+  TRANSLATION = 'TRANSLATION',
+  ACCESSIBILITY = 'ACCESSIBILITY'
+}
+
 export interface ICourse extends mongoose.Document {
   _id: string;
   title: string;
   description: string;
   level: CourseLevel;
-  category: string;
+  category: CourseCategory;
   tags: string[];
   price: number;
   duration: number; // in minutes
@@ -30,6 +81,21 @@ export interface ICourse extends mongoose.Document {
   rating: number;
   ratingCount: number;
   enrollmentCount: number;
+
+  // Wikipedia-specific fields
+  wikipediaProject: WikipediaProject;
+  prerequisites: mongoose.Types.ObjectId[]; // Other courses that should be completed first
+  learningObjectives: string[];
+  skillsAcquired: string[];
+  difficultyRating: number; // 1-10 scale for more granular difficulty
+  estimatedCompletionTime: number; // in hours
+  practiceArticles: string[]; // Wikipedia articles for practice
+
+  // Assessment and certification
+  hasAssessment: boolean;
+  passingScore: number;
+  certificateTemplate?: string;
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -54,9 +120,8 @@ const courseSchema = new Schema<ICourse>({
   },
   category: {
     type: String,
-    required: [true, 'Course category is required'],
-    trim: true,
-    maxlength: [100, 'Category cannot exceed 100 characters']
+    enum: Object.values(CourseCategory),
+    required: [true, 'Course category is required']
   },
   tags: [{
     type: String,
@@ -116,6 +181,58 @@ const courseSchema = new Schema<ICourse>({
     type: Number,
     default: 0,
     min: [0, 'Enrollment count cannot be negative']
+  },
+
+  // Wikipedia-specific fields
+  wikipediaProject: {
+    type: String,
+    enum: Object.values(WikipediaProject),
+    default: WikipediaProject.WIKIPEDIA
+  },
+  prerequisites: [{
+    type: Schema.Types.ObjectId,
+    ref: 'Course'
+  }],
+  learningObjectives: [{
+    type: String,
+    trim: true,
+    maxlength: [200, 'Learning objective cannot exceed 200 characters']
+  }],
+  skillsAcquired: [{
+    type: String,
+    trim: true,
+    maxlength: [100, 'Skill cannot exceed 100 characters']
+  }],
+  difficultyRating: {
+    type: Number,
+    min: [1, 'Difficulty rating must be at least 1'],
+    max: [10, 'Difficulty rating cannot exceed 10'],
+    default: 5
+  },
+  estimatedCompletionTime: {
+    type: Number,
+    min: [0, 'Estimated completion time cannot be negative'],
+    default: 0
+  },
+  practiceArticles: [{
+    type: String,
+    trim: true
+  }],
+
+  // Assessment and certification
+  hasAssessment: {
+    type: Boolean,
+    default: false
+  },
+  passingScore: {
+    type: Number,
+    min: [0, 'Passing score cannot be negative'],
+    max: [100, 'Passing score cannot exceed 100'],
+    default: 70
+  },
+  certificateTemplate: {
+    type: String,
+    trim: true
   }
 }, {
   timestamps: true,
