@@ -6,6 +6,7 @@ import {
   updateCourse,
   deleteCourse,
   getInstructorCourses,
+  getInstructorAnalytics,
   enrollInCourse,
   getUserEnrollments,
   getEnrolledCourses,
@@ -251,6 +252,24 @@ router.get('/categories', getCategories);
  *         description: Insufficient permissions
  */
 router.get('/my-courses', authenticate, requireInstructor, getInstructorCourses);
+
+/**
+ * @swagger
+ * /api/courses/instructor/analytics:
+ *   get:
+ *     summary: Get instructor analytics
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Instructor analytics retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Insufficient permissions
+ */
+router.get('/instructor/analytics', authenticate, requireInstructor, getInstructorAnalytics);
 
 /**
  * @swagger

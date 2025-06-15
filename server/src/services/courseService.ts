@@ -366,6 +366,124 @@ class CourseService {
     }
   }
 
+  // Get instructor analytics
+  async getInstructorAnalytics(instructorId: string): Promise<{
+    totalCourses: number;
+    publishedCourses: number;
+    totalStudents: number;
+    averageCompletionRate: number;
+    totalEnrollments: number;
+    recentEnrollments: number;
+  }> {
+    try {
+      // Get instructor's courses
+      const instructorCourses = await Course.find({ instructor: instructorId });
+      const courseIds = instructorCourses.map(course => course._id);
+
+      const [
+        totalCourses,
+        publishedCourses,
+        enrollmentStats,
+        completionStats
+      ] = await Promise.all([
+        Course.countDocuments({ instructor: instructorId }),
+        Course.countDocuments({ instructor: instructorId, isPublished: true }),
+        this.getInstructorEnrollmentStats(courseIds),
+        this.getInstructorCompletionStats(courseIds)
+      ]);
+
+      return {
+        totalCourses,
+        publishedCourses,
+        totalStudents: enrollmentStats.uniqueStudents,
+        averageCompletionRate: completionStats.averageCompletionRate,
+        totalEnrollments: enrollmentStats.totalEnrollments,
+        recentEnrollments: enrollmentStats.recentEnrollments
+      };
+    } catch (error) {
+      logger.error('Failed to get instructor analytics:', error);
+      throw error;
+    }
+  }
+
+  // Get instructor enrollment statistics
+  private async getInstructorEnrollmentStats(courseIds: any[]): Promise<{
+    totalEnrollments: number;
+    uniqueStudents: number;
+    recentEnrollments: number;
+  }> {
+    try {
+      if (courseIds.length === 0) {
+        return { totalEnrollments: 0, uniqueStudents: 0, recentEnrollments: 0 };
+      }
+
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const [enrollmentStats, recentEnrollments] = await Promise.all([
+        Enrollment.aggregate([
+          { $match: { course: { $in: courseIds } } },
+          {
+            $group: {
+              _id: null,
+              totalEnrollments: { $sum: 1 },
+              uniqueStudents: { $addToSet: '$user' }
+            }
+          },
+          {
+            $project: {
+              totalEnrollments: 1,
+              uniqueStudents: { $size: '$uniqueStudents' }
+            }
+          }
+        ]),
+        Enrollment.countDocuments({
+          course: { $in: courseIds },
+          enrolledAt: { $gte: thirtyDaysAgo }
+        })
+      ]);
+
+      const stats = enrollmentStats[0] || { totalEnrollments: 0, uniqueStudents: 0 };
+
+      return {
+        totalEnrollments: stats.totalEnrollments,
+        uniqueStudents: stats.uniqueStudents,
+        recentEnrollments
+      };
+    } catch (error) {
+      logger.error('Failed to get instructor enrollment stats:', error);
+      return { totalEnrollments: 0, uniqueStudents: 0, recentEnrollments: 0 };
+    }
+  }
+
+  // Get instructor completion statistics
+  private async getInstructorCompletionStats(courseIds: any[]): Promise<{
+    averageCompletionRate: number;
+  }> {
+    try {
+      if (courseIds.length === 0) {
+        return { averageCompletionRate: 0 };
+      }
+
+      const completionStats = await Enrollment.aggregate([
+        { $match: { course: { $in: courseIds } } },
+        {
+          $group: {
+            _id: null,
+            averageProgress: { $avg: '$progress' }
+          }
+        }
+      ]);
+
+      const averageCompletionRate = completionStats[0]?.averageProgress || 0;
+
+      return { averageCompletionRate: Math.round(averageCompletionRate) };
+    } catch (error) {
+      logger.error('Failed to get instructor completion stats:', error);
+      return { averageCompletionRate: 0 };
+    }
+  }
+
   // Get course categories
   async getCategories(): Promise<string[]> {
     try {

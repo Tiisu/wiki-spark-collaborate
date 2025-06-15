@@ -99,6 +99,13 @@ const Header = () => {
                       Editor
                     </Button>
                   </Link>
+                  {user && ['INSTRUCTOR', 'MENTOR', 'ADMIN', 'SUPER_ADMIN'].includes(user.role) && (
+                    <Link to="/instructor">
+                      <Button variant="outline" size="sm">
+                        Instructor Panel
+                      </Button>
+                    </Link>
+                  )}
                   {user && ['ADMIN', 'SUPER_ADMIN'].includes(user.role) && (
                     <Link to="/admin">
                       <Button variant="outline" size="sm">
@@ -139,6 +146,14 @@ const Header = () => {
                         Editor
                       </Link>
                     </DropdownMenuItem>
+                    {user && ['INSTRUCTOR', 'MENTOR', 'ADMIN', 'SUPER_ADMIN'].includes(user.role) && (
+                      <DropdownMenuItem asChild className="lg:hidden">
+                        <Link to="/instructor" className="flex items-center">
+                          <BookOpen className="mr-2 h-4 w-4" />
+                          Instructor Panel
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
                     {user && ['ADMIN', 'SUPER_ADMIN'].includes(user.role) && (
                       <DropdownMenuItem asChild className="lg:hidden">
                         <Link to="/admin" className="flex items-center">

@@ -123,6 +123,21 @@ export const getInstructorCourses = catchAsync(async (req: AuthRequest, res: Res
   });
 });
 
+// Get instructor analytics
+export const getInstructorAnalytics = catchAsync(async (req: AuthRequest, res: Response) => {
+  if (!req.user) {
+    throw new AppError('User not found', 404);
+  }
+
+  const analytics = await courseService.getInstructorAnalytics(req.user._id);
+
+  res.status(200).json({
+    success: true,
+    message: 'Instructor analytics retrieved successfully',
+    data: { analytics }
+  });
+});
+
 // Enroll in course
 export const enrollInCourse = catchAsync(async (req: AuthRequest, res: Response) => {
   if (!req.user) {

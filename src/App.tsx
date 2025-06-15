@@ -13,6 +13,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import InstructorDashboard from "./pages/InstructorDashboard";
 import WikipediaEditorPage from "./pages/WikipediaEditorPage";
 import CourseViewer from "./pages/CourseViewer";
 import VideoTutorials from "./pages/VideoTutorials";
@@ -57,6 +58,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <AdminDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/instructor"
+                element={
+                  <ProtectedRoute>
+                    <InstructorDashboard />
                   </ProtectedRoute>
                 }
               />

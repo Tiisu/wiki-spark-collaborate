@@ -318,6 +318,181 @@ export const courseApi = {
     );
     return response.data!;
   },
+
+  // Get instructor's courses
+  getInstructorCourses: async (params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    search?: string;
+  }): Promise<{ courses: Course[]; pagination: any }> => {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.status) queryParams.append('status', params.status);
+    if (params?.search) queryParams.append('search', params.search);
+
+    const response = await apiRequest<{ courses: Course[]; pagination: any }>(
+      `/api/courses/my-courses?${queryParams.toString()}`
+    );
+    return response.data!;
+  },
+
+  // Get instructor analytics
+  getInstructorAnalytics: async (): Promise<{
+    totalCourses: number;
+    publishedCourses: number;
+    totalStudents: number;
+    averageCompletionRate: number;
+    totalEnrollments: number;
+    recentEnrollments: number;
+  }> => {
+    const response = await apiRequest<{
+      analytics: {
+        totalCourses: number;
+        publishedCourses: number;
+        totalStudents: number;
+        averageCompletionRate: number;
+        totalEnrollments: number;
+        recentEnrollments: number;
+      };
+    }>('/api/courses/instructor/analytics');
+    return response.data!.analytics;
+  },
+};
+
+// Course Template types
+export interface CourseTemplate {
+  _id: string;
+  name: string;
+  description: string;
+  category: string;
+  level: string;
+  tags: string[];
+  thumbnail?: string;
+  isPublic: boolean;
+  createdBy: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    username: string;
+  };
+  modules: TemplateModule[];
+  estimatedDuration: number;
+  usageCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TemplateModule {
+  title: string;
+  description?: string;
+  order: number;
+  lessons: TemplateLesson[];
+}
+
+export interface TemplateLesson {
+  title: string;
+  description?: string;
+  type: 'VIDEO' | 'TEXT' | 'QUIZ' | 'ASSIGNMENT' | 'RESOURCE';
+  order: number;
+  content?: string;
+  duration?: number;
+}
+
+export interface CreateTemplateData {
+  name: string;
+  description: string;
+  category: string;
+  level: string;
+  tags?: string[];
+  thumbnail?: string;
+  isPublic?: boolean;
+  modules: TemplateModule[];
+}
+
+// Course Template API functions
+export const courseTemplateApi = {
+  // Get all templates
+  getTemplates: async (params?: {
+    page?: number;
+    limit?: number;
+    category?: string;
+    level?: string;
+    search?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+  }): Promise<{ templates: CourseTemplate[]; pagination: any }> => {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.category) queryParams.append('category', params.category);
+    if (params?.level) queryParams.append('level', params.level);
+    if (params?.search) queryParams.append('search', params.search);
+    if (params?.sortBy) queryParams.append('sortBy', params.sortBy);
+    if (params?.sortOrder) queryParams.append('sortOrder', params.sortOrder);
+
+    const response = await apiRequest<{ templates: CourseTemplate[]; pagination: any }>(
+      `/api/course-templates?${queryParams.toString()}`
+    );
+    return response.data!;
+  },
+
+  // Get template by ID
+  getTemplate: async (id: string): Promise<CourseTemplate> => {
+    const response = await apiRequest<CourseTemplate>(`/api/course-templates/${id}`);
+    return response.data!;
+  },
+
+  // Get user's templates
+  getUserTemplates: async (): Promise<{ templates: CourseTemplate[] }> => {
+    const response = await apiRequest<{ templates: CourseTemplate[] }>(
+      '/api/course-templates/my'
+    );
+    return response.data!;
+  },
+
+  // Create new template
+  createTemplate: async (templateData: CreateTemplateData): Promise<CourseTemplate> => {
+    const response = await apiRequest<CourseTemplate>('/api/course-templates', {
+      method: 'POST',
+      body: JSON.stringify(templateData),
+    });
+    return response.data!;
+  },
+
+  // Create course from template
+  createCourseFromTemplate: async (data: {
+    title: string;
+    description?: string;
+    templateId: string;
+  }): Promise<Course> => {
+    const response = await apiRequest<Course>('/api/course-templates/create-course', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return response.data!;
+  },
+
+  // Save course as template
+  saveAsTemplate: async (courseId: string, data: {
+    name: string;
+    description: string;
+    isPublic?: boolean;
+  }): Promise<CourseTemplate> => {
+    const response = await apiRequest<CourseTemplate>(`/api/course-templates/save/${courseId}`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return response.data!;
+  },
+
+  // Delete template
+  deleteTemplate: async (id: string): Promise<void> => {
+    await apiRequest(`/api/course-templates/${id}`, {
+      method: 'DELETE',
+    });
+  },
 };
 
 // Module and Lesson types

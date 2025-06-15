@@ -12,6 +12,7 @@ import { generalLimiter } from './middleware/rateLimiter';
 import authRoutes from './routes/auth';
 import healthRoutes from './routes/health';
 import courseRoutes from './routes/courses';
+import courseTemplateRoutes from './routes/courseTemplates';
 import quizRoutes from './routes/quizzes';
 import achievementRoutes from './routes/achievements';
 import certificateRoutes from './routes/certificates';
@@ -99,6 +100,7 @@ app.use('/health', healthRoutes);
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/courses', courseRoutes);
+app.use('/api/course-templates', courseTemplateRoutes);
 app.use('/api/quizzes', quizRoutes);
 app.use('/api/achievements', achievementRoutes);
 app.use('/api/certificates', certificateRoutes);
