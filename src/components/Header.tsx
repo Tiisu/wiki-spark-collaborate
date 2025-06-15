@@ -14,7 +14,9 @@ import {
   LogOut,
   Menu,
   X,
-  ChevronDown
+  ChevronDown,
+  Trophy,
+  Award
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -43,11 +45,11 @@ const Header = () => {
   };
 
   const navigationItems = [
-    { href: '/tutorials', icon: BookOpen, label: 'Video Tutorials' },
-    { href: '#learning', icon: Library, label: 'Learning Paths' },
+    { href: '/courses', icon: BookOpen, label: 'Courses' },
+    { href: '/achievements', icon: Trophy, label: 'Achievements' },
+    { href: '/certificates', icon: Award, label: 'Certificates' },
+    { href: '/tutorials', icon: Library, label: 'Tutorials' },
     { href: '#community', icon: Users, label: 'Community' },
-    { href: '#events', icon: Calendar, label: 'Events' },
-    { href: '#resources', icon: Library, label: 'Resources' },
   ];
 
   return (

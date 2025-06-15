@@ -18,6 +18,9 @@ import CourseViewer from "./pages/CourseViewer";
 import VideoTutorials from "./pages/VideoTutorials";
 import QuizDemo from "./pages/QuizDemo";
 import CourseBrowser from "./pages/CourseBrowser";
+import QuizPage from "./pages/QuizPage";
+import Achievements from "./pages/Achievements";
+import Certificates from "./pages/Certificates";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -104,6 +107,34 @@ const App = () => (
                     <QuizDemo />
                   </ProtectedRoute>
                 }
+              />
+              <Route
+                path="/quiz/:quizId"
+                element={
+                  <ProtectedRoute>
+                    <QuizPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/achievements"
+                element={
+                  <ProtectedRoute>
+                    <Achievements />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/certificates"
+                element={
+                  <ProtectedRoute>
+                    <Certificates />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/verify/:verificationCode"
+                element={<Certificates />}
               />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

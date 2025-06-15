@@ -23,6 +23,7 @@ import {
 import { Link } from 'react-router-dom';
 
 import Header from '@/components/Header';
+import { WikipediaLearningDashboard } from '@/components/dashboard/WikipediaLearningDashboard';
 import StudentProgress from '@/components/student/StudentProgress';
 import EnrolledCourses from '@/components/student/EnrolledCourses';
 import LearningPath from '@/components/student/LearningPath';
@@ -105,7 +106,7 @@ const Dashboard = () => {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4 sm:space-y-6">
-            <StudentProgress />
+            <WikipediaLearningDashboard />
           </TabsContent>
 
           <TabsContent value="courses">

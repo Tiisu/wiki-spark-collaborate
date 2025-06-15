@@ -3,10 +3,22 @@ import Module, { IModule } from '../models/Module';
 import Lesson, { ILesson } from '../models/Lesson';
 import Enrollment, { IEnrollment, EnrollmentStatus } from '../models/Enrollment';
 import Progress, { IProgress, ProgressStatus } from '../models/Progress';
+import achievementService from './achievementService';
+import certificateService from './certificateService';
 import logger from '../utils/logger';
 import { CreateCourseRequestBody, UpdateCourseRequestBody } from '../types';
 
 class CourseService {
+  // Wikipedia-focused course categories
+  private readonly wikipediaCategories = [
+    'Wikipedia Basics',
+    'Content Creation',
+    'Sourcing & Citations',
+    'Community & Policy',
+    'Sister Projects',
+    'Advanced Topics',
+    'Special Skills'
+  ];
   // Get all published courses with pagination and filtering
   async getCourses(options: {
     page?: number;
@@ -286,7 +298,7 @@ class CourseService {
     try {
       // Get total lessons in course
       const totalLessons = await Lesson.countDocuments({ course: courseId, isPublished: true });
-      
+
       // Get completed lessons
       const completedLessons = await Progress.countDocuments({
         user: userId,
@@ -296,27 +308,69 @@ class CourseService {
 
       const progress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
       const status = progress === 100 ? EnrollmentStatus.COMPLETED : EnrollmentStatus.ACTIVE;
+      const wasCompleted = progress === 100;
 
-      await Enrollment.findOneAndUpdate(
+      const enrollment = await Enrollment.findOneAndUpdate(
         { user: userId, course: courseId },
         {
           $set: {
             progress,
             status,
-            ...(progress === 100 && { completedAt: new Date() })
+            ...(wasCompleted && { completedAt: new Date() })
           }
-        }
+        },
+        { new: true }
       );
+
+      // If course was just completed, trigger achievements and certificate generation
+      if (wasCompleted && enrollment) {
+        try {
+          // Check and award achievements
+          await achievementService.checkAndAwardAchievements(userId);
+
+          // Check if user is eligible for certificate and generate it
+          const eligibility = await certificateService.checkCertificateEligibility(userId, courseId);
+          if (eligibility.eligible) {
+            // Calculate total time spent on course
+            const totalTimeSpent = await this.calculateCourseTimeSpent(userId, courseId);
+
+            await certificateService.generateCertificate({
+              userId,
+              courseId,
+              completionDate: new Date(),
+              timeSpent: totalTimeSpent
+            });
+          }
+        } catch (achievementError) {
+          logger.error('Failed to process course completion rewards:', achievementError);
+          // Don't throw error as the main progress update was successful
+        }
+      }
     } catch (error) {
       logger.error('Failed to update enrollment progress:', error);
+    }
+  }
+
+  // Calculate total time spent on course
+  private async calculateCourseTimeSpent(userId: string, courseId: string): Promise<number> {
+    try {
+      const progressRecords = await Progress.find({
+        user: userId,
+        course: courseId
+      });
+
+      return progressRecords.reduce((total, record) => total + (record.timeSpent || 0), 0);
+    } catch (error) {
+      logger.error('Failed to calculate course time spent:', error);
+      return 0;
     }
   }
 
   // Get course categories
   async getCategories(): Promise<string[]> {
     try {
-      const categories = await Course.distinct('category', { isPublished: true });
-      return categories.sort();
+      // Return predefined Wikipedia-focused categories
+      return this.wikipediaCategories;
     } catch (error) {
       logger.error('Failed to get categories:', error);
       throw error;

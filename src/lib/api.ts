@@ -352,6 +352,114 @@ export interface CreateLessonData {
   order: number;
 }
 
+// Quiz interfaces
+export interface QuizQuestion {
+  id: string;
+  type: 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'FILL_IN_BLANK' | 'MATCHING' | 'ORDERING';
+  question: string;
+  options?: string[];
+  correctAnswer: string | string[];
+  explanation?: string;
+  points: number;
+  order: number;
+}
+
+export interface Quiz {
+  _id: string;
+  title: string;
+  description?: string;
+  lesson: string;
+  course: string;
+  questions: QuizQuestion[];
+  passingScore: number;
+  timeLimit?: number;
+  maxAttempts?: number;
+  showCorrectAnswers: boolean;
+  showScoreImmediately: boolean;
+  isRequired: boolean;
+  order: number;
+  isPublished: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface QuizAttempt {
+  _id: string;
+  user: string;
+  quiz: string;
+  course: string;
+  lesson: string;
+  answers: Array<{
+    questionId: string;
+    userAnswer: string | string[];
+    isCorrect: boolean;
+    pointsEarned: number;
+    timeSpent?: number;
+  }>;
+  score: number;
+  totalPoints: number;
+  earnedPoints: number;
+  passed: boolean;
+  timeSpent: number;
+  startedAt: string;
+  completedAt?: string;
+  attemptNumber: number;
+  isCompleted: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Achievement interfaces
+export interface Achievement {
+  _id: string;
+  user: string;
+  badgeType: string;
+  title: string;
+  description: string;
+  iconUrl?: string;
+  course?: string;
+  quiz?: string;
+  earnedAt: string;
+  metadata?: {
+    score?: number;
+    timeSpent?: number;
+    courseTitle?: string;
+    quizTitle?: string;
+    additionalInfo?: Record<string, any>;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Certificate interfaces
+export interface Certificate {
+  _id: string;
+  user: string;
+  course: string;
+  verificationCode: string;
+  issuedAt: string;
+  completionDate: string;
+  finalScore?: number;
+  timeSpent: number;
+  instructorName: string;
+  courseName: string;
+  courseLevel: string;
+  certificateUrl?: string;
+  isValid: boolean;
+  revokedAt?: string;
+  revokedReason?: string;
+  metadata: {
+    totalLessons: number;
+    completedLessons: number;
+    totalQuizzes: number;
+    passedQuizzes: number;
+    averageQuizScore?: number;
+    achievements: string[];
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
 // Module API functions
 export const moduleApi = {
   // Get modules for a course
@@ -517,11 +625,225 @@ export const studyGoalApi = {
   },
 };
 
-// Achievements API functions
+// Quiz API functions
+export const quizApi = {
+  // Get quiz by ID
+  getQuiz: async (quizId: string, includeAnswers = false): Promise<Quiz> => {
+    const response = await apiRequest<Quiz>(
+      `/api/quizzes/${quizId}?includeAnswers=${includeAnswers}`
+    );
+    return response.data!;
+  },
+
+  // Get quizzes for a lesson
+  getQuizzesByLesson: async (lessonId: string): Promise<{ quizzes: Quiz[] }> => {
+    const response = await apiRequest<{ quizzes: Quiz[] }>(
+      `/api/quizzes/lesson/${lessonId}`
+    );
+    return response.data!;
+  },
+
+  // Start quiz attempt
+  startQuiz: async (quizId: string): Promise<{ quiz: Quiz; startTime: string; attemptNumber: number }> => {
+    const response = await apiRequest<{ quiz: Quiz; startTime: string; attemptNumber: number }>(
+      `/api/quizzes/${quizId}/start`,
+      { method: 'POST' }
+    );
+    return response.data!;
+  },
+
+  // Submit quiz attempt
+  submitQuiz: async (quizId: string, answers: Array<{ questionId: string; userAnswer: string | string[] }>, timeSpent: number): Promise<QuizAttempt> => {
+    const response = await apiRequest<QuizAttempt>(`/api/quizzes/${quizId}/submit`, {
+      method: 'POST',
+      body: JSON.stringify({ answers, timeSpent }),
+    });
+    return response.data!;
+  },
+
+  // Get user's quiz attempts
+  getMyAttempts: async (quizId?: string): Promise<{ attempts: QuizAttempt[] }> => {
+    const queryParams = quizId ? `?quizId=${quizId}` : '';
+    const response = await apiRequest<{ attempts: QuizAttempt[] }>(
+      `/api/quizzes/attempts/my${queryParams}`
+    );
+    return response.data!;
+  },
+
+  // Create quiz (instructors only)
+  createQuiz: async (quizData: {
+    title: string;
+    description?: string;
+    lessonId: string;
+    courseId: string;
+    questions: QuizQuestion[];
+    passingScore: number;
+    timeLimit?: number;
+    maxAttempts?: number;
+    showCorrectAnswers?: boolean;
+    showScoreImmediately?: boolean;
+    isRequired?: boolean;
+    order: number;
+  }): Promise<Quiz> => {
+    const response = await apiRequest<Quiz>('/api/quizzes', {
+      method: 'POST',
+      body: JSON.stringify(quizData),
+    });
+    return response.data!;
+  },
+
+  // Update quiz (instructors only)
+  updateQuiz: async (quizId: string, updateData: Partial<Quiz>): Promise<Quiz> => {
+    const response = await apiRequest<Quiz>(`/api/quizzes/${quizId}`, {
+      method: 'PUT',
+      body: JSON.stringify(updateData),
+    });
+    return response.data!;
+  },
+
+  // Delete quiz (instructors only)
+  deleteQuiz: async (quizId: string): Promise<void> => {
+    await apiRequest(`/api/quizzes/${quizId}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// Achievement API functions
 export const achievementApi = {
-  // Get user's achievements with progress
-  getUserAchievements: async (): Promise<any> => {
-    const response = await apiRequest<any>('/api/achievements');
+  // Get current user's achievements
+  getMyAchievements: async (): Promise<{ achievements: Achievement[] }> => {
+    const response = await apiRequest<{ achievements: Achievement[] }>(
+      '/api/achievements/my'
+    );
+    return response.data!;
+  },
+
+  // Check for new achievements
+  checkAchievements: async (): Promise<{ newAchievements: Achievement[]; count: number }> => {
+    const response = await apiRequest<{ newAchievements: Achievement[]; count: number }>(
+      '/api/achievements/check',
+      { method: 'POST' }
+    );
+    return response.data!;
+  },
+
+  // Get achievement statistics
+  getMyStats: async (): Promise<{
+    stats: {
+      totalAchievements: number;
+      recentAchievements: Achievement[];
+      categoryBreakdown: Record<string, number>;
+    }
+  }> => {
+    const response = await apiRequest<{
+      stats: {
+        totalAchievements: number;
+        recentAchievements: Achievement[];
+        categoryBreakdown: Record<string, number>;
+      }
+    }>('/api/achievements/stats');
+    return response.data!;
+  },
+
+  // Get all badge definitions
+  getBadgeDefinitions: async (): Promise<{ badges: any[] }> => {
+    const response = await apiRequest<{ badges: any[] }>('/api/achievements/badges');
+    return response.data!;
+  },
+
+  // Get achievement leaderboard
+  getLeaderboard: async (limit = 10, category?: string): Promise<{ leaderboard: any[] }> => {
+    const queryParams = new URLSearchParams();
+    queryParams.append('limit', limit.toString());
+    if (category) queryParams.append('category', category);
+
+    const response = await apiRequest<{ leaderboard: any[] }>(
+      `/api/achievements/leaderboard?${queryParams.toString()}`
+    );
+    return response.data!;
+  },
+};
+
+// Certificate API functions
+export const certificateApi = {
+  // Get current user's certificates
+  getMyCertificates: async (): Promise<{ certificates: Certificate[] }> => {
+    const response = await apiRequest<{ certificates: Certificate[] }>(
+      '/api/certificates/my'
+    );
+    return response.data!;
+  },
+
+  // Generate certificate for completed course
+  generateCertificate: async (courseId: string, data: {
+    completionDate: string;
+    finalScore?: number;
+    timeSpent: number;
+  }): Promise<Certificate> => {
+    const response = await apiRequest<Certificate>(
+      `/api/certificates/generate/${courseId}`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }
+    );
+    return response.data!;
+  },
+
+  // Check certificate eligibility
+  checkEligibility: async (courseId: string): Promise<{
+    eligibility: {
+      eligible: boolean;
+      reason?: string;
+      requirements?: {
+        courseCompleted: boolean;
+        requiredQuizzesPassed: boolean;
+        minimumScore?: number;
+      };
+    }
+  }> => {
+    const response = await apiRequest<{
+      eligibility: {
+        eligible: boolean;
+        reason?: string;
+        requirements?: {
+          courseCompleted: boolean;
+          requiredQuizzesPassed: boolean;
+          minimumScore?: number;
+        };
+      }
+    }>(`/api/certificates/eligibility/${courseId}`);
+    return response.data!;
+  },
+
+  // Verify certificate by verification code (public)
+  verifyCertificate: async (verificationCode: string): Promise<{
+    isValid: boolean;
+    certificate?: Certificate;
+    message: string;
+  }> => {
+    const response = await apiRequest<{
+      isValid: boolean;
+      certificate?: Certificate;
+      message: string;
+    }>(`/api/certificates/verify/${verificationCode}`);
+    return response.data!;
+  },
+
+  // Get certificate by verification code (public)
+  getCertificateByCode: async (verificationCode: string): Promise<Certificate> => {
+    const response = await apiRequest<Certificate>(
+      `/api/certificates/public/${verificationCode}`
+    );
+    return response.data!;
+  },
+
+  // Download certificate
+  downloadCertificate: async (certificateId: string): Promise<{ downloadUrl: string }> => {
+    const response = await apiRequest<{ downloadUrl: string }>(
+      `/api/certificates/${certificateId}/download`
+    );
     return response.data!;
   },
 };

@@ -131,7 +131,8 @@ const courseSchema = new Schema<ICourse>({
   price: {
     type: Number,
     default: 0,
-    min: [0, 'Price cannot be negative']
+    min: [0, 'Price cannot be negative'],
+    max: [0, 'All WikiWalkthrough courses are free']
   },
   duration: {
     type: Number,
