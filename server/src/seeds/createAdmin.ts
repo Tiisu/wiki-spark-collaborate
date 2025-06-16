@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
-import User, { UserRole } from '../models/User';
+import User from '../models/User';
+import { UserRole } from '../types';
 import logger from '../utils/logger';
 
 export async function createAdminUser() {

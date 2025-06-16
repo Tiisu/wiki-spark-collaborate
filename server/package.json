@@ -10,14 +10,10 @@
     "test": "jest",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
-<<<<<<< HEAD
-    "seed": "ts-node src/seeds/seedDatabase.ts",
-    "seed:courses": "ts-node src/seeds/seedDatabase.ts",
-    "create:admin": "ts-node src/seeds/createAdmin.ts"
-=======
     "seed": "npx ts-node src/scripts/runSeed.ts",
-    "seed:wikipedia": "npx ts-node src/scripts/runSeed.ts"
->>>>>>> 6919c55 (enhanced the ui)
+    "seed:courses": "ts-node src/seeds/seedDatabase.ts",
+    "seed:wikipedia": "npx ts-node src/scripts/runSeed.ts",
+    "create:admin": "ts-node src/seeds/createAdmin.ts"
   },
   "dependencies": {
     "express": "^4.18.2",
