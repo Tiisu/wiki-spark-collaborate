@@ -20,7 +20,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import LoadingSkeleton from '@/components/ui/loading-skeleton';
-import { achievementApi } from '@/lib/api';
+import { achievementApi, Achievement as ApiAchievement } from '@/lib/api';
 
 interface Achievement {
   id: string;
@@ -48,12 +48,84 @@ interface AchievementStats {
 const Achievements = () => {
   const [activeCategory, setActiveCategory] = useState('all');
 
-  const { data: achievementsData, isLoading, error } = useQuery({
+  // Fetch achievements
+  const { data: achievementsResponse, isLoading: achievementsLoading, error: achievementsError } = useQuery({
     queryKey: ['achievements'],
     queryFn: achievementApi.getUserAchievements,
     refetchInterval: 60000, // Refetch every minute
     staleTime: 5 * 60 * 1000, // Consider data stale after 5 minutes
   });
+
+  // Fetch achievement stats
+  const { data: statsResponse, isLoading: statsLoading, error: statsError } = useQuery({
+    queryKey: ['achievement-stats'],
+    queryFn: achievementApi.getMyStats,
+    refetchInterval: 60000, // Refetch every minute
+    staleTime: 5 * 60 * 1000, // Consider data stale after 5 minutes
+  });
+
+  // Transform API achievements to component format
+  const transformAchievement = (apiAchievement: ApiAchievement): Achievement => {
+    // Map badge types to categories and other properties
+    const getCategoryFromBadgeType = (badgeType: string): Achievement['category'] => {
+      if (badgeType.includes('COURSE') || badgeType.includes('LESSON')) return 'learning';
+      if (badgeType.includes('COMMUNITY') || badgeType.includes('SOCIAL')) return 'community';
+      if (badgeType.includes('MILESTONE') || badgeType.includes('STREAK')) return 'milestone';
+      return 'special';
+    };
+
+    const getTypeFromBadgeType = (badgeType: string): Achievement['type'] => {
+      if (badgeType.includes('BRONZE') || badgeType === 'FIRST_COURSE') return 'bronze';
+      if (badgeType.includes('SILVER') || badgeType === 'COURSE_MASTER') return 'silver';
+      if (badgeType.includes('GOLD') || badgeType === 'PERFECT_SCORE') return 'gold';
+      if (badgeType.includes('PLATINUM') || badgeType === 'DEDICATED_LEARNER') return 'platinum';
+      return 'bronze';
+    };
+
+    const getRarityFromBadgeType = (badgeType: string): Achievement['rarity'] => {
+      if (badgeType === 'FIRST_COURSE') return 'common';
+      if (badgeType === 'COURSE_MASTER') return 'uncommon';
+      if (badgeType === 'PERFECT_SCORE') return 'rare';
+      if (badgeType === 'DEDICATED_LEARNER') return 'legendary';
+      return 'common';
+    };
+
+    const getIconFromBadgeType = (badgeType: string): string => {
+      switch (badgeType) {
+        case 'FIRST_COURSE': return '🎓';
+        case 'COURSE_MASTER': return '🏆';
+        case 'PERFECT_SCORE': return '⭐';
+        case 'DEDICATED_LEARNER': return '📚';
+        default: return '🏅';
+      }
+    };
+
+    const getPointsFromBadgeType = (badgeType: string): number => {
+      switch (badgeType) {
+        case 'FIRST_COURSE': return 10;
+        case 'COURSE_MASTER': return 50;
+        case 'PERFECT_SCORE': return 25;
+        case 'DEDICATED_LEARNER': return 100;
+        default: return 10;
+      }
+    };
+
+    return {
+      id: apiAchievement._id,
+      title: apiAchievement.title,
+      description: apiAchievement.description,
+      category: getCategoryFromBadgeType(apiAchievement.badgeType),
+      type: getTypeFromBadgeType(apiAchievement.badgeType),
+      icon: getIconFromBadgeType(apiAchievement.badgeType),
+      isUnlocked: true, // All returned achievements are unlocked
+      unlockedAt: apiAchievement.earnedAt,
+      points: getPointsFromBadgeType(apiAchievement.badgeType),
+      rarity: getRarityFromBadgeType(apiAchievement.badgeType),
+    };
+  };
+
+  const isLoading = achievementsLoading || statsLoading;
+  const error = achievementsError || statsError;
 
   if (isLoading) {
     return (
@@ -78,7 +150,19 @@ const Achievements = () => {
     );
   }
 
-  const { achievements, stats } = achievementsData || { achievements: [], stats: {} as AchievementStats };
+  // Transform achievements data
+  const apiAchievements = achievementsResponse?.achievements || [];
+  const achievements = apiAchievements.map(transformAchievement);
+
+  // Create stats from available data
+  const apiStats = statsResponse?.stats;
+  const stats: AchievementStats = {
+    totalPoints: achievements.reduce((sum, achievement) => sum + achievement.points, 0),
+    unlockedCount: achievements.length,
+    totalCount: achievements.length + 10, // Add some mock total count for locked achievements
+    recentAchievements: achievements.slice(0, 3), // Most recent 3
+    nextAchievements: [], // No locked achievements data available yet
+  };
 
   const filteredAchievements = activeCategory === 'all' 
     ? achievements 
@@ -155,7 +239,7 @@ const Achievements = () => {
           </CardHeader>
           <CardContent className="p-3 sm:p-6 pt-0">
             <div className="text-lg sm:text-2xl font-bold">
-              {Math.round((stats.unlockedCount / stats.totalCount) * 100)}%
+              {stats.totalCount > 0 ? Math.round((stats.unlockedCount / stats.totalCount) * 100) : 0}%
             </div>
             <p className="text-xs text-muted-foreground">Completion rate</p>
           </CardContent>

@@ -17,6 +17,7 @@ import quizRoutes from './routes/quizzes';
 import achievementRoutes from './routes/achievements';
 import certificateRoutes from './routes/certificates';
 import studyGoalRoutes from './routes/studyGoals';
+import learningPathRoutes from './routes/learningPaths';
 import adminRoutes from './routes/admin';
 
 // Import utilities
@@ -107,6 +108,7 @@ app.use('/api/quizzes', quizRoutes);
 app.use('/api/achievements', achievementRoutes);
 app.use('/api/certificates', certificateRoutes);
 app.use('/api/study-goals', studyGoalRoutes);
+app.use('/api/learning-paths', learningPathRoutes);
 app.use('/api/admin', adminRoutes);
 
 // Serve static files (for uploaded files, etc.)

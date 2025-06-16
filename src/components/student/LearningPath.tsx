@@ -121,7 +121,35 @@ const LearningPath = () => {
     );
   }
 
-  const paths = pathsData || [];
+  // Transform API data to component format
+  const transformLearningPath = (apiPath: any): LearningPath => {
+    return {
+      id: apiPath._id,
+      title: apiPath.title,
+      description: apiPath.description,
+      category: apiPath.category,
+      totalSteps: apiPath.steps?.length || 0,
+      completedSteps: apiPath.completedSteps || 0,
+      estimatedHours: apiPath.estimatedHours,
+      difficulty: apiPath.difficulty,
+      steps: apiPath.steps?.map((step: any): LearningPathStep => ({
+        id: step._id,
+        title: step.title,
+        description: step.description,
+        type: step.type,
+        status: step.status,
+        progress: step.progress || 0,
+        estimatedHours: step.estimatedHours,
+        difficulty: step.difficulty,
+        prerequisites: step.prerequisites || [],
+        skills: step.skills || [],
+        courseId: step.courseId,
+      })) || [],
+    };
+  };
+
+  const rawPaths = pathsData?.paths || [];
+  const paths = rawPaths.map(transformLearningPath);
 
   // Set default selected path if not set
   if (!selectedPath && paths.length > 0) {

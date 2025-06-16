@@ -1207,8 +1207,8 @@ export const certificateApi = {
 // Learning Paths API functions
 export const learningPathApi = {
   // Get all learning paths with user progress
-  getLearningPaths: async (): Promise<any> => {
-    const response = await apiRequest<any>('/api/learning-paths');
+  getLearningPaths: async (): Promise<{ paths: any[] }> => {
+    const response = await apiRequest<{ paths: any[] }>('/api/learning-paths');
     return response.data!;
   },
 
