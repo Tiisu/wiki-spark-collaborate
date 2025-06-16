@@ -837,6 +837,15 @@ export const lessonApi = {
     );
     return response.data!;
   },
+
+  // Bulk publish lessons in a module
+  bulkPublish: async (courseId: string, moduleId: string): Promise<{ publishedCount: number; totalLessons: number }> => {
+    const response = await apiRequest<{ publishedCount: number; totalLessons: number }>(
+      `/api/courses/${courseId}/modules/${moduleId}/lessons/bulk-publish`,
+      { method: 'PATCH' }
+    );
+    return response.data!;
+  },
 };
 
 // Learning API functions

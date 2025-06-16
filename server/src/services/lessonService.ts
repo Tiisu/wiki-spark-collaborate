@@ -184,12 +184,12 @@ export class LessonService {
         throw new AppError('Course not found or you are not authorized to modify lessons', 404);
       }
 
-      const lesson = await Lesson.findOne({ 
-        _id: lessonId, 
-        module: moduleId, 
-        course: courseId 
+      const lesson = await Lesson.findOne({
+        _id: lessonId,
+        module: moduleId,
+        course: courseId
       });
-      
+
       if (!lesson) {
         return null;
       }
@@ -207,6 +207,56 @@ export class LessonService {
       return updatedLesson;
     } catch (error) {
       logger.error('Failed to toggle lesson publish status:', error);
+      throw error;
+    }
+  }
+
+  // Bulk publish lessons in a module
+  async bulkPublishLessons(
+    courseId: string,
+    moduleId: string,
+    instructorId: string
+  ): Promise<{ publishedCount: number; totalLessons: number }> {
+    try {
+      // Verify course exists and user is the instructor
+      const course = await Course.findOne({ _id: courseId, instructor: instructorId });
+      if (!course) {
+        throw new AppError('Course not found or you are not authorized to modify lessons', 404);
+      }
+
+      // Verify module exists and belongs to the course
+      const module = await Module.findOne({ _id: moduleId, course: courseId });
+      if (!module) {
+        throw new AppError('Module not found or does not belong to this course', 404);
+      }
+
+      // Get all unpublished lessons in the module
+      const unpublishedLessons = await Lesson.find({
+        module: moduleId,
+        course: courseId,
+        isPublished: false
+      });
+
+      // Publish all unpublished lessons
+      const result = await Lesson.updateMany(
+        {
+          module: moduleId,
+          course: courseId,
+          isPublished: false
+        },
+        { $set: { isPublished: true } }
+      );
+
+      const totalLessons = await Lesson.countDocuments({ module: moduleId, course: courseId });
+
+      logger.info(`Bulk published ${result.modifiedCount} lessons in module ${moduleId}`);
+
+      return {
+        publishedCount: result.modifiedCount,
+        totalLessons
+      };
+    } catch (error) {
+      logger.error('Failed to bulk publish lessons:', error);
       throw error;
     }
   }

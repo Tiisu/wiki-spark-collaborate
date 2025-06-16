@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-  BookOpen, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Eye, 
+import {
+  BookOpen,
+  Plus,
+  Edit,
+  Trash2,
+  Eye,
   EyeOff,
   ChevronDown,
   ChevronRight,
@@ -13,7 +13,8 @@ import {
   Video,
   HelpCircle,
   ClipboardList,
-  Zap
+  Zap,
+  CheckCircle
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -234,12 +235,33 @@ const CourseContentManager: React.FC<CourseContentManagerProps> = ({
 
   // Toggle lesson publish mutation
   const toggleLessonPublishMutation = useMutation({
-    mutationFn: ({ moduleId, lessonId }: { moduleId: string; lessonId: string }) => 
+    mutationFn: ({ moduleId, lessonId }: { moduleId: string; lessonId: string }) =>
       lessonApi.togglePublish(courseId, moduleId, lessonId),
     onSuccess: () => {
       toast({
         title: 'Success',
         description: 'Lesson publish status updated',
+      });
+      queryClient.invalidateQueries({ queryKey: ['course-lessons', courseId] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  });
+
+  // Bulk publish lessons mutation
+  const bulkPublishLessonsMutation = useMutation({
+    mutationFn: async (moduleId: string) => {
+      return lessonApi.bulkPublish(courseId, moduleId);
+    },
+    onSuccess: (result) => {
+      toast({
+        title: 'Success',
+        description: `${result.publishedCount} lessons published successfully`,
       });
       queryClient.invalidateQueries({ queryKey: ['course-lessons', courseId] });
     },
@@ -402,8 +424,18 @@ const CourseContentManager: React.FC<CourseContentManagerProps> = ({
                       size="sm"
                       onClick={() => toggleModulePublishMutation.mutate(module.id)}
                       disabled={toggleModulePublishMutation.isPending}
+                      title={module.isPublished ? 'Unpublish module' : 'Publish module'}
                     >
                       {module.isPublished ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => bulkPublishLessonsMutation.mutate(module.id)}
+                      disabled={bulkPublishLessonsMutation.isPending}
+                      title="Publish all lessons in this module"
+                    >
+                      <CheckCircle className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost"

@@ -501,54 +501,70 @@ const CourseViewer = () => {
                 <CardTitle className="text-lg">Course Content</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4 max-h-[70vh] overflow-y-auto">
-                {course?.modules?.map((module) => (
-                  <div key={module.id} className="space-y-2">
-                    <h4 className="font-semibold text-sm text-foreground">{module.title}</h4>
-                    <div className="space-y-1">
-                      {module.lessons?.map((lesson) => (
-                        <button
-                          key={lesson.id}
-                          onClick={() => setSelectedLessonId(lesson.id)}
-                          className={`w-full text-left p-3 rounded-lg border transition-colors ${
-                            selectedLessonId === lesson.id
-                              ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800'
-                              : 'hover:bg-muted'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-2">
-                              {getLessonIcon(lesson.type)}
-                              <span className="text-sm font-medium truncate">{lesson.title}</span>
-                              {lesson.quiz && (
-                                <Trophy className={`h-3 w-3 flex-shrink-0 ${
-                                  lesson.quizAttempt?.passed
-                                    ? 'text-green-600'
-                                    : 'text-muted-foreground'
-                                }`} />
-                              )}
-                            </div>
-                            {lesson.isCompleted && (
-                              <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                            )}
-                          </div>
-                          {lesson.duration && (
-                            <div className="text-xs text-muted-foreground mt-1">
-                              {lesson.duration}m
-                              {lesson.quiz && (
-                                <span className="ml-2">
-                                  • Quiz: {lesson.quizAttempt?.passed ? 'Passed' : 'Required'}
-                                </span>
-                              )}
-                            </div>
-                          )}
-                          {lesson.progress > 0 && lesson.progress < 100 && (
-                            <Progress value={lesson.progress} className="h-1 mt-2" />
-                          )}
-                        </button>
-                      ))}
-                    </div>
+                {course?.modules?.length === 0 ? (
+                  <div className="text-center py-8">
+                    <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-foreground mb-2">No modules available</h3>
+                    <p className="text-muted-foreground">This course doesn't have any modules yet.</p>
                   </div>
-                ))}
+                ) : (
+                  course?.modules?.map((module) => (
+                    <div key={module.id} className="space-y-2">
+                      <h4 className="font-semibold text-sm text-foreground">{module.title}</h4>
+                      <div className="space-y-1">
+                        {module.lessons?.length === 0 ? (
+                          <div className="text-center py-4 border border-dashed rounded-lg">
+                            <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                            <p className="text-sm text-muted-foreground">No lessons available in this module</p>
+                            <p className="text-xs text-muted-foreground mt-1">Content may not be published yet</p>
+                          </div>
+                        ) : (
+                          module.lessons?.map((lesson) => (
+                            <button
+                              key={lesson.id}
+                              onClick={() => setSelectedLessonId(lesson.id)}
+                              className={`w-full text-left p-3 rounded-lg border transition-colors ${
+                                selectedLessonId === lesson.id
+                                  ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800'
+                                  : 'hover:bg-muted'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-2">
+                                  {getLessonIcon(lesson.type)}
+                                  <span className="text-sm font-medium truncate">{lesson.title}</span>
+                                  {lesson.quiz && (
+                                    <Trophy className={`h-3 w-3 flex-shrink-0 ${
+                                      lesson.quizAttempt?.passed
+                                        ? 'text-green-600'
+                                        : 'text-muted-foreground'
+                                    }`} />
+                                  )}
+                                </div>
+                                {lesson.isCompleted && (
+                                  <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                                )}
+                              </div>
+                              {lesson.duration && (
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  {lesson.duration}m
+                                  {lesson.quiz && (
+                                    <span className="ml-2">
+                                      • Quiz: {lesson.quizAttempt?.passed ? 'Passed' : 'Required'}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                              {lesson.progress > 0 && lesson.progress < 100 && (
+                                <Progress value={lesson.progress} className="h-1 mt-2" />
+                              )}
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
               </CardContent>
             </Card>
           </div>

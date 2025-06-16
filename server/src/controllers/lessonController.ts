@@ -113,3 +113,20 @@ export const togglePublish = catchAsync(async (req: AuthRequest, res: Response) 
     data: { lesson }
   });
 });
+
+// Bulk publish lessons in a module
+export const bulkPublishLessons = catchAsync(async (req: AuthRequest, res: Response) => {
+  if (!req.user) {
+    throw new AppError('User not found', 404);
+  }
+
+  const { courseId, moduleId } = req.params;
+
+  const result = await lessonService.bulkPublishLessons(courseId, moduleId, req.user._id);
+
+  res.status(200).json({
+    success: true,
+    message: `${result.publishedCount} lessons published successfully`,
+    data: result
+  });
+});

@@ -32,7 +32,8 @@ import {
   createLesson,
   updateLesson,
   deleteLesson,
-  togglePublish as toggleLessonPublish
+  togglePublish as toggleLessonPublish,
+  bulkPublishLessons
 } from '../controllers/lessonController';
 import { authenticate, requireInstructor } from '../middleware/auth';
 import { apiLimiter } from '../middleware/rateLimiter';
@@ -968,5 +969,36 @@ router.delete('/:courseId/modules/:moduleId/lessons/:lessonId', authenticate, re
  *         description: Lesson not found
  */
 router.patch('/:courseId/modules/:moduleId/lessons/:lessonId/publish', authenticate, requireInstructor, toggleLessonPublish);
+
+/**
+ * @swagger
+ * /api/courses/{courseId}/modules/{moduleId}/lessons/bulk-publish:
+ *   patch:
+ *     summary: Bulk publish all lessons in a module
+ *     tags: [Lessons]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: moduleId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Lessons published successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Insufficient permissions
+ *       404:
+ *         description: Module not found
+ */
+router.patch('/:courseId/modules/:moduleId/lessons/bulk-publish', authenticate, requireInstructor, bulkPublishLessons);
 
 export default router;
