@@ -24,7 +24,7 @@ export const LoginForm = () => {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, isLoading } = useAuth();
+  const { login, isLoading, getRoleBasedDashboard } = useAuth();
 
   const {
     register,
@@ -39,8 +39,8 @@ export const LoginForm = () => {
       setError(null);
       await login(data.email, data.password);
 
-      // Redirect to the page they were trying to visit or dashboard
-      const from = location.state?.from?.pathname || '/dashboard';
+      // Redirect to the page they were trying to visit or role-based dashboard
+      const from = location.state?.from?.pathname || getRoleBasedDashboard();
       navigate(from, { replace: true });
     } catch (error: any) {
       setError(error.message || 'Login failed');

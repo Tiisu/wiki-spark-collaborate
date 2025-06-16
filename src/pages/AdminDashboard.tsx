@@ -24,18 +24,14 @@ import VideoUpload from '@/components/admin/VideoUpload';
 import UserManagement from '@/components/admin/UserManagement';
 import Analytics from '@/components/admin/Analytics';
 import SystemHealth from '@/components/admin/SystemHealth';
+import { RoleDebugger } from '@/components/debug/RoleDebugger';
 
 const AdminDashboard = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
 
-  // Redirect if not authenticated or not admin
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (!user || !['ADMIN', 'SUPER_ADMIN'].includes(user.role)) {
-    return <Navigate to="/dashboard" replace />;
+  if (!user) {
+    return null; // This should be handled by RoleProtectedRoute
   }
 
   return (
@@ -169,6 +165,9 @@ const AdminDashboard = () => {
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Debug component for development */}
+      <RoleDebugger />
     </div>
   );
 };

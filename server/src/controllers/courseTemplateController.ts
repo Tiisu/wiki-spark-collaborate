@@ -16,7 +16,7 @@ export const getTemplates = catchAsync(async (req: AuthRequest, res: Response) =
     sortOrder = 'desc'
   } = req.query;
 
-  const result = await courseTemplateService.getTemplates(userId, {
+  const result = await courseTemplateService.getTemplates(userId || '', {
     page: Number(page),
     limit: Number(limit),
     category: category as string,

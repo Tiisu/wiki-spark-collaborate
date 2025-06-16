@@ -11,6 +11,8 @@ interface AuthContextType {
   logout: () => Promise<void>;
   register: (userData: any) => Promise<void>;
   refetchUser: () => void;
+  getRoleBasedDashboard: () => string;
+  hasRole: (roles: string | string[]) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -183,6 +185,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     await logoutMutation.mutateAsync();
   };
 
+  // Get role-based dashboard route
+  const getRoleBasedDashboard = (): string => {
+    if (!user?.role) return '/student';
+
+    switch (user.role.toUpperCase()) {
+      case 'SUPER_ADMIN':
+      case 'ADMIN':
+        return '/admin';
+      case 'INSTRUCTOR':
+      case 'MENTOR':
+        return '/instructor';
+      case 'LEARNER':
+      default:
+        return '/student';
+    }
+  };
+
+  // Check if user has specific role(s)
+  const hasRole = (roles: string | string[]): boolean => {
+    if (!user?.role) return false;
+
+    const roleArray = Array.isArray(roles) ? roles : [roles];
+    return roleArray.some(role => user.role.toUpperCase() === role.toUpperCase());
+  };
+
   const value: AuthContextType = {
     user: user || null,
     isAuthenticated,
@@ -191,6 +218,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     register,
     refetchUser,
+    getRoleBasedDashboard,
+    hasRole,
   };
 
   return (

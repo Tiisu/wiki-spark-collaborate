@@ -32,7 +32,7 @@ import {
 } from '@/components/ui/sheet';
 
 const Header = () => {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, getRoleBasedDashboard } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
@@ -89,7 +89,7 @@ const Header = () => {
               <>
                 {/* Desktop User Menu */}
                 <div className="hidden lg:flex items-center space-x-4">
-                  <Link to="/dashboard">
+                  <Link to={getRoleBasedDashboard()}>
                     <Button variant="outline" size="sm">
                       Dashboard
                     </Button>
@@ -135,7 +135,7 @@ const Header = () => {
                     </div>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild className="lg:hidden">
-                      <Link to="/dashboard" className="flex items-center">
+                      <Link to={getRoleBasedDashboard()} className="flex items-center">
                         <User className="mr-2 h-4 w-4" />
                         Dashboard
                       </Link>

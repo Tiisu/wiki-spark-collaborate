@@ -28,28 +28,22 @@ import VideoUpload from '@/components/admin/VideoUpload';
 import InstructorCourseManagement from '@/components/instructor/InstructorCourseManagement';
 import CourseTemplateBrowser from '@/components/instructor/CourseTemplateBrowser';
 import { courseApi } from '@/lib/api';
+import { RoleDebugger } from '@/components/debug/RoleDebugger';
 
 const InstructorDashboard = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [showTemplateBrowser, setShowTemplateBrowser] = useState(false);
 
-  // Check if user has instructor privileges
-  if (!isAuthenticated || !user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  const hasInstructorAccess = ['INSTRUCTOR', 'MENTOR', 'ADMIN', 'SUPER_ADMIN'].includes(user.role);
-
-  if (!hasInstructorAccess) {
-    return <Navigate to="/dashboard" replace />;
+  if (!user) {
+    return null; // This should be handled by RoleProtectedRoute
   }
 
   // Fetch instructor analytics
   const { data: analytics, isLoading: analyticsLoading, error: analyticsError } = useQuery({
     queryKey: ['instructor-analytics'],
     queryFn: courseApi.getInstructorAnalytics,
-    enabled: hasInstructorAccess,
+    enabled: true,
   });
 
   return (
@@ -275,6 +269,9 @@ const InstructorDashboard = () => {
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Debug component for development */}
+      <RoleDebugger />
     </div>
   );
 };

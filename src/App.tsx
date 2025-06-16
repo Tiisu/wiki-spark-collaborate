@@ -6,12 +6,14 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { RoleBasedRouter } from "@/components/auth/RoleBasedRouter";
+import { AdminProtectedRoute, InstructorProtectedRoute, StudentProtectedRoute } from "@/components/auth/RoleProtectedRoute";
 import Index from "./pages/Index";
 import Register from "./pages/Register";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
-import Dashboard from "./pages/Dashboard";
+import StudentDashboard from "./pages/Dashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import InstructorDashboard from "./pages/InstructorDashboard";
 import WikipediaEditorPage from "./pages/WikipediaEditorPage";
@@ -45,28 +47,43 @@ const App = () => (
               <Route path="/login" element={<Login />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              {/* Role-based dashboard routing */}
               <Route
                 path="/dashboard"
                 element={
                   <ProtectedRoute>
-                    <Dashboard />
+                    <RoleBasedRouter />
                   </ProtectedRoute>
                 }
               />
+
+              {/* Student Dashboard */}
+              <Route
+                path="/student"
+                element={
+                  <StudentProtectedRoute>
+                    <StudentDashboard />
+                  </StudentProtectedRoute>
+                }
+              />
+
+              {/* Admin Dashboard */}
               <Route
                 path="/admin"
                 element={
-                  <ProtectedRoute>
+                  <AdminProtectedRoute>
                     <AdminDashboard />
-                  </ProtectedRoute>
+                  </AdminProtectedRoute>
                 }
               />
+
+              {/* Instructor Dashboard */}
               <Route
                 path="/instructor"
                 element={
-                  <ProtectedRoute>
+                  <InstructorProtectedRoute>
                     <InstructorDashboard />
-                  </ProtectedRoute>
+                  </InstructorProtectedRoute>
                 }
               />
               <Route

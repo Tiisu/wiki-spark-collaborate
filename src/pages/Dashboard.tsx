@@ -29,8 +29,9 @@ import EnrolledCourses from '@/components/student/EnrolledCourses';
 import LearningPath from '@/components/student/LearningPath';
 import Achievements from '@/components/student/Achievements';
 import StudyPlan from '@/components/student/StudyPlan';
+import { RoleDebugger } from '@/components/debug/RoleDebugger';
 
-const Dashboard = () => {
+const StudentDashboard = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
 
@@ -59,6 +60,11 @@ const Dashboard = () => {
                 <Star className="h-3 w-3" />
                 <span className="hidden sm:inline">Level 1 Learner</span>
                 <span className="sm:hidden">Lvl 1</span>
+              </Badge>
+              <Badge variant="secondary" className="flex items-center gap-1">
+                <User className="h-3 w-3" />
+                <span className="hidden sm:inline">Student</span>
+                <span className="sm:hidden">Student</span>
               </Badge>
             </div>
           </div>
@@ -130,8 +136,11 @@ const Dashboard = () => {
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Debug component for development */}
+      <RoleDebugger />
     </div>
   );
 };
 
-export default Dashboard;
+export default StudentDashboard;
