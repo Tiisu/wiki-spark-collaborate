@@ -221,16 +221,39 @@ export const getEnrolledCourses = catchAsync(async (req: AuthRequest, res: Respo
     });
   }
 
+  // Transform enrollments to courses with enrollment metadata
+  const coursesWithEnrollmentData = filteredEnrollments.map(enrollment => {
+    const course = enrollment.course as any; // Type assertion for populated course
+    return {
+      id: course._id || course.id,
+      title: course.title,
+      description: course.description,
+      instructor: course.instructor,
+      thumbnail: course.thumbnail,
+      progress: enrollment.progress,
+      totalLessons: course.totalLessons || 0,
+      completedLessons: enrollment.completedLessons?.length || 0,
+      videoLessons: 0, // This would need to be calculated from lessons
+      estimatedHours: course.duration ? Math.ceil(course.duration / 60) : 0,
+      difficulty: course.level || 'Beginner',
+      category: course.category,
+      enrolledAt: enrollment.enrolledAt,
+      lastAccessed: enrollment.updatedAt,
+      rating: course.rating || 0,
+      isCompleted: enrollment.status === 'COMPLETED'
+    };
+  });
+
   // Pagination
   const startIndex = (Number(page) - 1) * Number(limit);
   const endIndex = startIndex + Number(limit);
-  const paginatedEnrollments = filteredEnrollments.slice(startIndex, endIndex);
+  const paginatedCourses = coursesWithEnrollmentData.slice(startIndex, endIndex);
 
   const pagination = {
     currentPage: Number(page),
-    totalPages: Math.ceil(filteredEnrollments.length / Number(limit)),
-    totalItems: filteredEnrollments.length,
-    hasNext: endIndex < filteredEnrollments.length,
+    totalPages: Math.ceil(coursesWithEnrollmentData.length / Number(limit)),
+    totalItems: coursesWithEnrollmentData.length,
+    hasNext: endIndex < coursesWithEnrollmentData.length,
     hasPrev: startIndex > 0
   };
 
@@ -238,7 +261,7 @@ export const getEnrolledCourses = catchAsync(async (req: AuthRequest, res: Respo
     success: true,
     message: 'Enrolled courses retrieved successfully',
     data: {
-      enrollments: paginatedEnrollments,
+      courses: paginatedCourses,
       pagination
     }
   });

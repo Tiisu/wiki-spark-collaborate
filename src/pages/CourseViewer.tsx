@@ -330,10 +330,10 @@ const CourseViewer = () => {
   });
 
   // Get all lessons in order
-  const allLessons = course?.modules.flatMap(module => module.lessons).sort((a, b) => {
+  const allLessons = course?.modules?.flatMap(module => module.lessons)?.sort((a, b) => {
     if (a.moduleId !== b.moduleId) {
-      const moduleA = course.modules.find(m => m.id === a.moduleId);
-      const moduleB = course.modules.find(m => m.id === b.moduleId);
+      const moduleA = course?.modules?.find(m => m.id === a.moduleId);
+      const moduleB = course?.modules?.find(m => m.id === b.moduleId);
       return (moduleA?.order || 0) - (moduleB?.order || 0);
     }
     return a.order - b.order;
@@ -363,15 +363,15 @@ const CourseViewer = () => {
 
     // Update the lesson's quiz attempt in the cache
     queryClient.setQueryData(['course', courseId], (oldData: any) => {
-      if (!oldData) return oldData;
+      if (!oldData || !oldData.modules) return oldData;
 
       const updatedModules = oldData.modules.map((module: any) => ({
         ...module,
-        lessons: module.lessons.map((lesson: any) =>
+        lessons: module.lessons?.map((lesson: any) =>
           lesson.id === lessonId
             ? { ...lesson, quizAttempt: attempt }
             : lesson
-        )
+        ) || []
       }));
 
       return { ...oldData, modules: updatedModules };
@@ -381,7 +381,7 @@ const CourseViewer = () => {
       title: attempt.passed ? 'Quiz passed!' : 'Quiz completed',
       description: attempt.passed
         ? `Great job! You scored ${attempt.score}%`
-        : `You scored ${attempt.score}%. You need ${course?.modules.find(m => m.lessons.find(l => l.id === lessonId))?.lessons.find(l => l.id === lessonId)?.quiz?.passingScore}% to pass.`,
+        : `You scored ${attempt.score}%. You need ${course?.modules?.find(m => m.lessons?.find(l => l.id === lessonId))?.lessons?.find(l => l.id === lessonId)?.quiz?.passingScore || 70}% to pass.`,
     });
   };
 
@@ -501,11 +501,11 @@ const CourseViewer = () => {
                 <CardTitle className="text-lg">Course Content</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4 max-h-[70vh] overflow-y-auto">
-                {course.modules.map((module) => (
+                {course?.modules?.map((module) => (
                   <div key={module.id} className="space-y-2">
                     <h4 className="font-semibold text-sm text-foreground">{module.title}</h4>
                     <div className="space-y-1">
-                      {module.lessons.map((lesson) => (
+                      {module.lessons?.map((lesson) => (
                         <button
                           key={lesson.id}
                           onClick={() => setSelectedLessonId(lesson.id)}
