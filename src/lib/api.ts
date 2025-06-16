@@ -189,7 +189,6 @@ export interface Course {
   progress: number;
   level?: string;
   tags?: string[];
-  price?: number;
   isPublished?: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -226,7 +225,6 @@ export interface CreateCourseData {
   level: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
   category: 'EDITING_BASICS' | 'WIKITEXT_MARKUP' | 'ARTICLE_CREATION' | 'CITATION_SOURCING' | 'RELIABLE_SOURCES' | 'FACT_CHECKING' | 'CONTENT_POLICIES' | 'BEHAVIORAL_GUIDELINES' | 'COPYRIGHT_LICENSING' | 'CONFLICT_RESOLUTION' | 'COMMUNITY_ENGAGEMENT' | 'PEER_REVIEW' | 'ADVANCED_EDITING' | 'TEMPLATE_CREATION' | 'BOT_AUTOMATION' | 'COMMONS_MEDIA' | 'WIKTIONARY_EDITING' | 'WIKIBOOKS_AUTHORING' | 'WIKIDATA_EDITING' | 'ACADEMIC_WRITING' | 'TRANSLATION' | 'ACCESSIBILITY';
   tags: string[];
-  price?: number;
   duration?: number;
 }
 
@@ -514,11 +512,72 @@ export interface CreateModuleData {
   order: number;
 }
 
+// Enhanced lesson types to match backend
+export type LessonType =
+  | 'TEXT'
+  | 'VIDEO'
+  | 'QUIZ'
+  | 'ASSIGNMENT'
+  | 'RESOURCE'
+  | 'INTERACTIVE_EDITOR'
+  | 'WIKIPEDIA_EXERCISE'
+  | 'PEER_REVIEW';
+
+// Quiz question types
+export interface QuizQuestion {
+  id: string;
+  type: 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'FILL_IN_BLANK';
+  question: string;
+  options?: string[];
+  correctAnswer: string | string[];
+  explanation?: string;
+  points: number;
+  order: number;
+}
+
+// Interactive elements for lessons
+export interface InteractiveElement {
+  type: 'tooltip' | 'highlight' | 'popup' | 'guide';
+  trigger: string;
+  content: string;
+  position?: string;
+}
+
+// Assessment criteria for assignments
+export interface AssessmentCriterion {
+  criterion: string;
+  weight: number;
+  description: string;
+}
+
+// Wikipedia exercise configuration
+export interface WikipediaExercise {
+  articleTitle?: string;
+  initialContent?: string;
+  targetContent?: string;
+  instructions: string;
+  editingMode: 'sandbox' | 'guided' | 'live';
+  allowedActions: string[];
+  successCriteria: Array<{
+    type: 'contains' | 'format' | 'structure' | 'links' | 'citations';
+    description: string;
+    required: boolean;
+  }>;
+}
+
+// Resource item
+export interface ResourceItem {
+  title: string;
+  url: string;
+  type: string;
+}
+
 export interface LessonData {
   id: string;
   title: string;
+  description?: string;
   content: string;
-  type: 'TEXT' | 'VIDEO' | 'INTERACTIVE' | 'QUIZ' | 'ASSIGNMENT';
+  type: LessonType;
   videoUrl?: string;
   duration?: number;
   order: number;
@@ -527,15 +586,28 @@ export interface LessonData {
   creatorId: string;
   createdAt: string;
   updatedAt: string;
+
+  // Type-specific fields
+  resources?: ResourceItem[];
+  wikipediaExercise?: WikipediaExercise;
+  interactiveElements?: InteractiveElement[];
+  assessmentCriteria?: AssessmentCriterion[];
 }
 
 export interface CreateLessonData {
   title: string;
+  description?: string;
   content: string;
-  type: 'TEXT' | 'VIDEO' | 'INTERACTIVE' | 'QUIZ' | 'ASSIGNMENT';
+  type: LessonType;
   videoUrl?: string;
   duration?: number;
   order: number;
+
+  // Type-specific fields
+  resources?: ResourceItem[];
+  wikipediaExercise?: WikipediaExercise;
+  interactiveElements?: InteractiveElement[];
+  assessmentCriteria?: AssessmentCriterion[];
 }
 
 // Quiz interfaces

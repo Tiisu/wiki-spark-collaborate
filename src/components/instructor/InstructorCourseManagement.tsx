@@ -55,7 +55,6 @@ interface InstructorCourse {
   totalLessons?: number;
   estimatedHours?: number;
   tags?: string[];
-  price?: number;
   duration?: number;
   enrollmentCount?: number;
 }

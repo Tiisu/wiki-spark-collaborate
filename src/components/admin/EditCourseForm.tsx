@@ -27,7 +27,6 @@ interface AdminCourse {
   totalLessons?: number;
   estimatedHours?: number;
   tags?: string[];
-  price?: number;
   duration?: number;
 }
 
@@ -36,7 +35,6 @@ const createCourseSchema = z.object({
   description: z.string().min(1, 'Description is required'),
   category: z.string().min(1, 'Category is required'),
   level: z.enum(['BEGINNER', 'INTERMEDIATE', 'ADVANCED']),
-  price: z.number().min(0, 'Price must be 0 or greater').optional(),
   duration: z.number().min(1, 'Duration must be at least 1 minute').optional(),
 });
 
@@ -72,7 +70,6 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
       description: course.description,
       category: course.category,
       level: course.level as 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED',
-      price: course.price || 0,
       duration: course.duration || undefined
     }
   });
@@ -85,7 +82,6 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
         description: course.description,
         category: course.category,
         level: course.level as 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED',
-        price: course.price || 0,
         duration: course.duration || undefined
       });
       setTags(course.tags || []);
@@ -110,7 +106,6 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
       level: data.level,
       category: data.category,
       tags,
-      price: data.price && !isNaN(Number(data.price)) ? Number(data.price) : 0,
       duration: data.duration && !isNaN(Number(data.duration)) ? Number(data.duration) : undefined
     };
 
@@ -197,18 +192,12 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="price">Price (USD)</Label>
-              <Input
-                id="price"
-                type="number"
-                min="0"
-                step="0.01"
-                {...register('price', { valueAsNumber: true })}
-                placeholder="0.00"
-              />
-              {errors.price && (
-                <p className="text-sm text-red-600">{errors.price.message}</p>
-              )}
+              <div className="flex items-center gap-2 text-green-600">
+                <span className="text-sm font-medium">✓ Free & Open Access</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                All courses on WikiWalkthrough are free and open to everyone
+              </p>
             </div>
 
             <div className="space-y-2">

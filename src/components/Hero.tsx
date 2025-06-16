@@ -14,10 +14,15 @@ const Hero = () => {
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-green-600"> Wikipedia Mastery</span>
           </h1>
 
-          <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
+          <p className="text-xl text-muted-foreground mb-4 leading-relaxed">
             Join a vibrant global community of knowledge creators. Learn to contribute effectively to Wikipedia
             through structured learning paths, collaborative projects, and expert mentorship.
           </p>
+
+          <div className="inline-flex items-center gap-2 bg-green-50 text-green-700 px-4 py-2 rounded-full text-lg font-medium mb-8">
+            <span className="text-green-600">✓</span>
+            Completely Free & Open Source Education
+          </div>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
             <Link to="/register">

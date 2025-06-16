@@ -2,23 +2,61 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2, FileText, Video, HelpCircle, ClipboardList, Zap } from 'lucide-react';
+import { Loader2, FileText, Video, HelpCircle, ClipboardList, Zap, FolderOpen, BookOpen } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { CreateLessonData, LessonData } from '@/lib/api';
+import { CreateLessonData, LessonData, LessonType } from '@/lib/api';
 
+// Import type-specific form components
+import TextLessonForm from '@/components/lesson-forms/TextLessonForm';
+import VideoLessonForm from '@/components/lesson-forms/VideoLessonForm';
+import QuizLessonForm from '@/components/lesson-forms/QuizLessonForm';
+import AssignmentLessonForm from '@/components/lesson-forms/AssignmentLessonForm';
+import InteractiveLessonForm from '@/components/lesson-forms/InteractiveLessonForm';
+import ResourceLessonForm from '@/components/lesson-forms/ResourceLessonForm';
+
+// Enhanced lesson schema to support all lesson types
 const lessonSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200, 'Title too long'),
+  description: z.string().optional(),
   content: z.string().min(1, 'Content is required'),
-  type: z.enum(['TEXT', 'VIDEO', 'INTERACTIVE', 'QUIZ', 'ASSIGNMENT']),
+  type: z.enum(['TEXT', 'VIDEO', 'QUIZ', 'ASSIGNMENT', 'RESOURCE', 'INTERACTIVE_EDITOR', 'WIKIPEDIA_EXERCISE', 'PEER_REVIEW']),
   videoUrl: z.string().url('Invalid URL').optional().or(z.literal('')),
   duration: z.number().min(1, 'Duration must be at least 1 minute').optional(),
   order: z.number().min(1, 'Order must be at least 1'),
+  resources: z.array(z.object({
+    title: z.string(),
+    url: z.string(),
+    type: z.string()
+  })).optional(),
+  wikipediaExercise: z.object({
+    articleTitle: z.string().optional(),
+    initialContent: z.string().optional(),
+    targetContent: z.string().optional(),
+    instructions: z.string(),
+    editingMode: z.enum(['sandbox', 'guided', 'live']),
+    allowedActions: z.array(z.string()),
+    successCriteria: z.array(z.object({
+      type: z.enum(['contains', 'format', 'structure', 'links', 'citations']),
+      description: z.string(),
+      required: z.boolean()
+    }))
+  }).optional(),
+  interactiveElements: z.array(z.object({
+    type: z.enum(['tooltip', 'highlight', 'popup', 'guide']),
+    trigger: z.string(),
+    content: z.string(),
+    position: z.string().optional()
+  })).optional(),
+  assessmentCriteria: z.array(z.object({
+    criterion: z.string(),
+    weight: z.number(),
+    description: z.string()
+  })).optional()
 });
 
 interface LessonFormProps {
@@ -31,11 +69,13 @@ interface LessonFormProps {
 }
 
 const lessonTypes = [
-  { value: 'TEXT', label: 'Text Content', icon: FileText },
-  { value: 'VIDEO', label: 'Video Lesson', icon: Video },
-  { value: 'INTERACTIVE', label: 'Interactive Content', icon: Zap },
-  { value: 'QUIZ', label: 'Quiz', icon: HelpCircle },
-  { value: 'ASSIGNMENT', label: 'Assignment', icon: ClipboardList },
+  { value: 'TEXT', label: 'Text Content', icon: FileText, description: 'Rich text lessons with formatting' },
+  { value: 'VIDEO', label: 'Video Lesson', icon: Video, description: 'Video content with notes and transcripts' },
+  { value: 'QUIZ', label: 'Quiz', icon: HelpCircle, description: 'Interactive quizzes with multiple question types' },
+  { value: 'ASSIGNMENT', label: 'Assignment', icon: ClipboardList, description: 'Assignments with assessment criteria' },
+  { value: 'RESOURCE', label: 'Resource Collection', icon: FolderOpen, description: 'Curated collection of learning materials' },
+  { value: 'INTERACTIVE_EDITOR', label: 'Wikipedia Exercise', icon: Zap, description: 'Hands-on Wikipedia editing practice' },
+  { value: 'WIKIPEDIA_EXERCISE', label: 'Advanced Wikipedia Exercise', icon: BookOpen, description: 'Complex Wikipedia editing scenarios' },
 ];
 
 const LessonForm: React.FC<LessonFormProps> = ({
@@ -59,11 +99,16 @@ const LessonForm: React.FC<LessonFormProps> = ({
     resolver: zodResolver(lessonSchema),
     defaultValues: {
       title: lesson?.title || '',
+      description: lesson?.description || '',
       content: lesson?.content || '',
       type: lesson?.type || 'TEXT',
       videoUrl: lesson?.videoUrl || '',
       duration: lesson?.duration || undefined,
-      order: lesson?.order || Math.max(...existingOrders, 0) + 1
+      order: lesson?.order || Math.max(...existingOrders, 0) + 1,
+      resources: lesson?.resources || [],
+      wikipediaExercise: lesson?.wikipediaExercise,
+      interactiveElements: lesson?.interactiveElements || [],
+      assessmentCriteria: lesson?.assessmentCriteria || []
     }
   });
 
@@ -71,31 +116,57 @@ const LessonForm: React.FC<LessonFormProps> = ({
     if (lesson) {
       reset({
         title: lesson.title,
+        description: lesson.description || '',
         content: lesson.content,
         type: lesson.type,
         videoUrl: lesson.videoUrl || '',
         duration: lesson.duration || undefined,
-        order: lesson.order
+        order: lesson.order,
+        resources: lesson.resources || [],
+        wikipediaExercise: lesson.wikipediaExercise,
+        interactiveElements: lesson.interactiveElements || [],
+        assessmentCriteria: lesson.assessmentCriteria || []
       });
     } else {
       reset({
         title: '',
+        description: '',
         content: '',
         type: 'TEXT',
         videoUrl: '',
         duration: undefined,
-        order: Math.max(...existingOrders, 0) + 1
+        order: Math.max(...existingOrders, 0) + 1,
+        resources: [],
+        wikipediaExercise: undefined,
+        interactiveElements: [],
+        assessmentCriteria: []
       });
     }
   }, [lesson, reset, existingOrders]);
 
   const handleFormSubmit = (data: CreateLessonData) => {
-    // Clean up the data
-    const cleanData = {
+    // Clean up the data based on lesson type
+    const cleanData: CreateLessonData = {
       ...data,
       videoUrl: data.videoUrl || undefined,
-      duration: data.duration || undefined
+      duration: data.duration || undefined,
+      description: data.description || undefined
     };
+
+    // Only include type-specific fields if they exist
+    if (data.resources && data.resources.length > 0) {
+      cleanData.resources = data.resources;
+    }
+    if (data.wikipediaExercise) {
+      cleanData.wikipediaExercise = data.wikipediaExercise;
+    }
+    if (data.interactiveElements && data.interactiveElements.length > 0) {
+      cleanData.interactiveElements = data.interactiveElements;
+    }
+    if (data.assessmentCriteria && data.assessmentCriteria.length > 0) {
+      cleanData.assessmentCriteria = data.assessmentCriteria;
+    }
+
     onSubmit(cleanData);
   };
 
@@ -103,24 +174,49 @@ const LessonForm: React.FC<LessonFormProps> = ({
   const orderValue = watch('order');
   const isOrderConflict = !isEditing && existingOrders.includes(orderValue);
 
+  // Get the selected lesson type info
+  const selectedTypeInfo = lessonTypes.find(type => type.value === selectedType);
+
+  const renderTypeSpecificForm = () => {
+    const commonProps = { register, setValue, watch, errors };
+
+    switch (selectedType) {
+      case 'TEXT':
+        return <TextLessonForm {...commonProps} />;
+      case 'VIDEO':
+        return <VideoLessonForm {...commonProps} />;
+      case 'QUIZ':
+        return <QuizLessonForm {...commonProps} />;
+      case 'ASSIGNMENT':
+        return <AssignmentLessonForm {...commonProps} />;
+      case 'RESOURCE':
+        return <ResourceLessonForm {...commonProps} />;
+      case 'INTERACTIVE_EDITOR':
+      case 'WIKIPEDIA_EXERCISE':
+        return <InteractiveLessonForm {...commonProps} />;
+      default:
+        return null;
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
+            {selectedTypeInfo?.icon && <selectedTypeInfo.icon className="h-5 w-5" />}
             {isEditing ? 'Edit Lesson' : 'Create New Lesson'}
           </DialogTitle>
           <DialogDescription>
-            {isEditing 
+            {isEditing
               ? 'Update the lesson information below'
-              : 'Add a new lesson to this module'
+              : selectedTypeInfo?.description || 'Add a new lesson to this module'
             }
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
-          {/* Title and Type */}
+          {/* Basic Lesson Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="title">Lesson Title *</Label>
@@ -138,7 +234,7 @@ const LessonForm: React.FC<LessonFormProps> = ({
               <Label htmlFor="type">Lesson Type *</Label>
               <Select
                 value={selectedType}
-                onValueChange={(value) => setValue('type', value as any)}
+                onValueChange={(value) => setValue('type', value as LessonType)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select lesson type" />
@@ -148,9 +244,14 @@ const LessonForm: React.FC<LessonFormProps> = ({
                     const Icon = type.icon;
                     return (
                       <SelectItem key={type.value} value={type.value}>
-                        <div className="flex items-center gap-2">
-                          <Icon className="h-4 w-4" />
-                          {type.label}
+                        <div className="flex flex-col items-start">
+                          <div className="flex items-center gap-2">
+                            <Icon className="h-4 w-4" />
+                            {type.label}
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            {type.description}
+                          </span>
                         </div>
                       </SelectItem>
                     );
@@ -163,64 +264,10 @@ const LessonForm: React.FC<LessonFormProps> = ({
             </div>
           </div>
 
-          {/* Content */}
-          <div className="space-y-2">
-            <Label htmlFor="content">Content *</Label>
-            <Textarea
-              id="content"
-              {...register('content')}
-              placeholder="Enter the lesson content. You can use markdown formatting."
-              rows={8}
-              className="font-mono text-sm"
-            />
-            {errors.content && (
-              <p className="text-sm text-red-600">{errors.content.message}</p>
-            )}
-            <p className="text-xs text-muted-foreground">
-              Supports markdown formatting for rich text content
-            </p>
-          </div>
-
-          {/* Video URL (conditional) */}
-          {selectedType === 'VIDEO' && (
-            <div className="space-y-2">
-              <Label htmlFor="videoUrl">Video URL</Label>
-              <Input
-                id="videoUrl"
-                {...register('videoUrl')}
-                placeholder="https://youtube.com/watch?v=..."
-                type="url"
-              />
-              {errors.videoUrl && (
-                <p className="text-sm text-red-600">{errors.videoUrl.message}</p>
-              )}
-              <p className="text-xs text-muted-foreground">
-                YouTube, Vimeo, or direct video file URLs are supported
-              </p>
-            </div>
-          )}
-
-          {/* Duration and Order */}
+          {/* Order Field */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label htmlFor="duration">Duration (minutes)</Label>
-              <Input
-                id="duration"
-                type="number"
-                min="1"
-                {...register('duration', { valueAsNumber: true })}
-                placeholder="e.g., 15"
-              />
-              {errors.duration && (
-                <p className="text-sm text-red-600">{errors.duration.message}</p>
-              )}
-              <p className="text-xs text-muted-foreground">
-                Estimated time to complete this lesson
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="order">Order *</Label>
+              <Label htmlFor="order">Lesson Order *</Label>
               <Input
                 id="order"
                 type="number"
@@ -242,8 +289,11 @@ const LessonForm: React.FC<LessonFormProps> = ({
             </div>
           </div>
 
+          {/* Type-Specific Form Content */}
+          {renderTypeSpecificForm()}
+
           {/* Submit Buttons */}
-          <div className="flex justify-end gap-4 pt-4">
+          <div className="flex justify-end gap-4 pt-6 border-t">
             <Button
               type="button"
               variant="outline"

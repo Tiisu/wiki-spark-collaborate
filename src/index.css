@@ -1,3 +1,6 @@
+/* React Quill Editor Styles */
+@import 'react-quill/dist/quill.snow.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -217,5 +220,78 @@
 
   .safe-right {
     padding-right: env(safe-area-inset-right);
+  }
+
+  /* React Quill Editor Custom Styles */
+  .ql-editor {
+    min-height: 200px;
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .ql-toolbar {
+    border-top: 1px solid hsl(var(--border));
+    border-left: 1px solid hsl(var(--border));
+    border-right: 1px solid hsl(var(--border));
+    border-bottom: none;
+    border-radius: 0.375rem 0.375rem 0 0;
+    background: hsl(var(--background));
+  }
+
+  .ql-container {
+    border-bottom: 1px solid hsl(var(--border));
+    border-left: 1px solid hsl(var(--border));
+    border-right: 1px solid hsl(var(--border));
+    border-top: none;
+    border-radius: 0 0 0.375rem 0.375rem;
+    background: hsl(var(--background));
+  }
+
+  .ql-editor.ql-blank::before {
+    color: hsl(var(--muted-foreground));
+    font-style: normal;
+  }
+
+  .ql-snow .ql-picker {
+    color: hsl(var(--foreground));
+  }
+
+  .ql-snow .ql-stroke {
+    stroke: hsl(var(--foreground));
+  }
+
+  .ql-snow .ql-fill {
+    fill: hsl(var(--foreground));
+  }
+
+  .ql-snow .ql-picker-options {
+    background: hsl(var(--background));
+    border: 1px solid hsl(var(--border));
+    border-radius: 0.375rem;
+  }
+
+  .ql-snow .ql-picker-item:hover {
+    background: hsl(var(--accent));
+  }
+
+  .ql-snow .ql-tooltip {
+    background: hsl(var(--background));
+    border: 1px solid hsl(var(--border));
+    border-radius: 0.375rem;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  }
+
+  .ql-snow .ql-tooltip input[type=text] {
+    background: hsl(var(--background));
+    border: 1px solid hsl(var(--border));
+    color: hsl(var(--foreground));
+    border-radius: 0.25rem;
+    padding: 0.25rem 0.5rem;
+  }
+
+  .ql-snow .ql-tooltip a.ql-action::after,
+  .ql-snow .ql-tooltip a.ql-remove::after {
+    color: hsl(var(--primary));
   }
 }

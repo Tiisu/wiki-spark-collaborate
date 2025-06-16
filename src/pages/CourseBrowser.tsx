@@ -40,7 +40,6 @@ interface Course {
   rating: number;
   level: string;
   tags: string[];
-  price: number;
   isPublished: boolean;
 }
 
@@ -238,9 +237,10 @@ const CourseBrowser = () => {
                     </div>
                   </div>
 
-                  {/* Price */}
-                  <div className="text-lg font-bold text-foreground">
-                    {course.price === 0 ? 'Free' : `$${course.price}`}
+                  {/* Free Access Badge */}
+                  <div className="flex items-center gap-2 text-green-600">
+                    <span className="text-lg font-bold">✓ Free</span>
+                    <span className="text-sm text-muted-foreground">Open to everyone</span>
                   </div>
 
                   {/* Action Buttons */}

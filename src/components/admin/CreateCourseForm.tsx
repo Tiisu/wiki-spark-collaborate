@@ -123,7 +123,6 @@ const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onSuccess }) => {
       level: data.level,
       category: data.category,
       tags,
-      price: data.price && !isNaN(Number(data.price)) ? Number(data.price) : 0,
       duration: data.duration && !isNaN(Number(data.duration)) ? Number(data.duration) : undefined
     };
 
@@ -251,20 +250,12 @@ const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onSuccess }) => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="price" className="flex items-center gap-1">
-                <DollarSign className="h-4 w-4" />
-                Price (USD)
-              </Label>
-              <Input
-                id="price"
-                type="number"
-                step="0.01"
-                {...register('price', {
-                  min: 0,
-                  valueAsNumber: true
-                })}
-                placeholder="0.00 (free)"
-              />
+              <div className="flex items-center gap-2 text-green-600">
+                <span className="text-sm font-medium">✓ Free & Open Access</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                All courses on WikiWalkthrough are free and open to everyone
+              </p>
             </div>
           </div>
 
