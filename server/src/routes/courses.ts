@@ -5,6 +5,7 @@ import {
   createCourse,
   updateCourse,
   deleteCourse,
+  togglePublish,
   getInstructorCourses,
   getInstructorAnalytics,
   enrollInCourse,
@@ -14,6 +15,25 @@ import {
   getCategories,
   getCourseWithProgress
 } from '../controllers/courseController';
+
+// Import module and lesson controllers
+import {
+  getModules,
+  getModuleById,
+  createModule,
+  updateModule,
+  deleteModule,
+  togglePublish as toggleModulePublish
+} from '../controllers/moduleController';
+
+import {
+  getLessons,
+  getLessonById,
+  createLesson,
+  updateLesson,
+  deleteLesson,
+  togglePublish as toggleLessonPublish
+} from '../controllers/lessonController';
 import { authenticate, requireInstructor } from '../middleware/auth';
 import { apiLimiter } from '../middleware/rateLimiter';
 
@@ -459,6 +479,32 @@ router.delete('/:id', authenticate, requireInstructor, deleteCourse);
 
 /**
  * @swagger
+ * /api/courses/{id}/publish:
+ *   patch:
+ *     summary: Toggle course publish status
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Course publish status toggled successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Insufficient permissions
+ *       404:
+ *         description: Course not found
+ */
+router.patch('/:id/publish', authenticate, requireInstructor, togglePublish);
+
+/**
+ * @swagger
  * /api/courses/{id}/enroll:
  *   post:
  *     summary: Enroll in a course
@@ -526,5 +572,401 @@ router.post('/:id/enroll', authenticate, enrollInCourse);
  *         description: Lesson not found
  */
 router.put('/lessons/:lessonId/progress', authenticate, updateProgress);
+
+// Module routes
+/**
+ * @swagger
+ * /api/courses/{courseId}/modules:
+ *   get:
+ *     summary: Get modules for a course
+ *     tags: [Modules]
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Modules retrieved successfully
+ */
+router.get('/:courseId/modules', getModules);
+
+/**
+ * @swagger
+ * /api/courses/{courseId}/modules:
+ *   post:
+ *     summary: Create a new module
+ *     tags: [Modules]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *               - order
+ *             properties:
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               order:
+ *                 type: number
+ *     responses:
+ *       201:
+ *         description: Module created successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Insufficient permissions
+ */
+router.post('/:courseId/modules', authenticate, requireInstructor, createModule);
+
+/**
+ * @swagger
+ * /api/courses/{courseId}/modules/{moduleId}:
+ *   get:
+ *     summary: Get module by ID
+ *     tags: [Modules]
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: moduleId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Module retrieved successfully
+ *       404:
+ *         description: Module not found
+ */
+router.get('/:courseId/modules/:moduleId', getModuleById);
+
+/**
+ * @swagger
+ * /api/courses/{courseId}/modules/{moduleId}:
+ *   put:
+ *     summary: Update module
+ *     tags: [Modules]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: moduleId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Module updated successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Insufficient permissions
+ *       404:
+ *         description: Module not found
+ */
+router.put('/:courseId/modules/:moduleId', authenticate, requireInstructor, updateModule);
+
+/**
+ * @swagger
+ * /api/courses/{courseId}/modules/{moduleId}:
+ *   delete:
+ *     summary: Delete module
+ *     tags: [Modules]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: moduleId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Module deleted successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Insufficient permissions
+ *       404:
+ *         description: Module not found
+ */
+router.delete('/:courseId/modules/:moduleId', authenticate, requireInstructor, deleteModule);
+
+/**
+ * @swagger
+ * /api/courses/{courseId}/modules/{moduleId}/publish:
+ *   patch:
+ *     summary: Toggle module publish status
+ *     tags: [Modules]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: moduleId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Module publish status toggled successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Insufficient permissions
+ *       404:
+ *         description: Module not found
+ */
+router.patch('/:courseId/modules/:moduleId/publish', authenticate, requireInstructor, toggleModulePublish);
+
+// Lesson routes
+/**
+ * @swagger
+ * /api/courses/{courseId}/modules/{moduleId}/lessons:
+ *   get:
+ *     summary: Get lessons for a module
+ *     tags: [Lessons]
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: moduleId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Lessons retrieved successfully
+ */
+router.get('/:courseId/modules/:moduleId/lessons', getLessons);
+
+/**
+ * @swagger
+ * /api/courses/{courseId}/modules/{moduleId}/lessons:
+ *   post:
+ *     summary: Create a new lesson
+ *     tags: [Lessons]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: moduleId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *               - content
+ *               - type
+ *               - order
+ *             properties:
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               content:
+ *                 type: string
+ *               type:
+ *                 type: string
+ *               order:
+ *                 type: number
+ *               duration:
+ *                 type: number
+ *               videoUrl:
+ *                 type: string
+ *               isFree:
+ *                 type: boolean
+ *     responses:
+ *       201:
+ *         description: Lesson created successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Insufficient permissions
+ */
+router.post('/:courseId/modules/:moduleId/lessons', authenticate, requireInstructor, createLesson);
+
+/**
+ * @swagger
+ * /api/courses/{courseId}/modules/{moduleId}/lessons/{lessonId}:
+ *   get:
+ *     summary: Get lesson by ID
+ *     tags: [Lessons]
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: moduleId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: lessonId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Lesson retrieved successfully
+ *       404:
+ *         description: Lesson not found
+ */
+router.get('/:courseId/modules/:moduleId/lessons/:lessonId', getLessonById);
+
+/**
+ * @swagger
+ * /api/courses/{courseId}/modules/{moduleId}/lessons/{lessonId}:
+ *   put:
+ *     summary: Update lesson
+ *     tags: [Lessons]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: moduleId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: lessonId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Lesson updated successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Insufficient permissions
+ *       404:
+ *         description: Lesson not found
+ */
+router.put('/:courseId/modules/:moduleId/lessons/:lessonId', authenticate, requireInstructor, updateLesson);
+
+/**
+ * @swagger
+ * /api/courses/{courseId}/modules/{moduleId}/lessons/{lessonId}:
+ *   delete:
+ *     summary: Delete lesson
+ *     tags: [Lessons]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: moduleId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: lessonId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Lesson deleted successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Insufficient permissions
+ *       404:
+ *         description: Lesson not found
+ */
+router.delete('/:courseId/modules/:moduleId/lessons/:lessonId', authenticate, requireInstructor, deleteLesson);
+
+/**
+ * @swagger
+ * /api/courses/{courseId}/modules/{moduleId}/lessons/{lessonId}/publish:
+ *   patch:
+ *     summary: Toggle lesson publish status
+ *     tags: [Lessons]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: moduleId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: lessonId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Lesson publish status toggled successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Insufficient permissions
+ *       404:
+ *         description: Lesson not found
+ */
+router.patch('/:courseId/modules/:moduleId/lessons/:lessonId/publish', authenticate, requireInstructor, toggleLessonPublish);
 
 export default router;

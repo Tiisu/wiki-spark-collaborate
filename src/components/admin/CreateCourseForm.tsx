@@ -14,6 +14,32 @@ import { useToast } from '@/hooks/use-toast';
 import { courseApi, CreateCourseData } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 
+// Valid course categories from the backend enum
+const COURSE_CATEGORIES = [
+  { value: 'EDITING_BASICS', label: 'Wikipedia Editing Basics' },
+  { value: 'WIKITEXT_MARKUP', label: 'Wikitext Markup' },
+  { value: 'ARTICLE_CREATION', label: 'Article Creation' },
+  { value: 'CITATION_SOURCING', label: 'Citation & Sourcing' },
+  { value: 'RELIABLE_SOURCES', label: 'Reliable Sources' },
+  { value: 'FACT_CHECKING', label: 'Fact Checking' },
+  { value: 'CONTENT_POLICIES', label: 'Content Policies' },
+  { value: 'BEHAVIORAL_GUIDELINES', label: 'Behavioral Guidelines' },
+  { value: 'COPYRIGHT_LICENSING', label: 'Copyright & Licensing' },
+  { value: 'CONFLICT_RESOLUTION', label: 'Conflict Resolution' },
+  { value: 'COMMUNITY_ENGAGEMENT', label: 'Community Engagement' },
+  { value: 'PEER_REVIEW', label: 'Peer Review' },
+  { value: 'ADVANCED_EDITING', label: 'Advanced Editing' },
+  { value: 'TEMPLATE_CREATION', label: 'Template Creation' },
+  { value: 'BOT_AUTOMATION', label: 'Bot Automation' },
+  { value: 'COMMONS_MEDIA', label: 'Commons Media' },
+  { value: 'WIKTIONARY_EDITING', label: 'Wiktionary Editing' },
+  { value: 'WIKIBOOKS_AUTHORING', label: 'Wikibooks Authoring' },
+  { value: 'WIKIDATA_EDITING', label: 'Wikidata Editing' },
+  { value: 'ACADEMIC_WRITING', label: 'Academic Writing' },
+  { value: 'TRANSLATION', label: 'Translation' },
+  { value: 'ACCESSIBILITY', label: 'Accessibility' }
+];
+
 interface CreateCourseFormProps {
   onSuccess?: () => void;
 }
@@ -76,6 +102,15 @@ const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onSuccess }) => {
       toast({
         title: 'Error',
         description: 'Please select a difficulty level',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!data.category) {
+      toast({
+        title: 'Error',
+        description: 'Please select a category',
         variant: 'destructive',
       });
       return;
@@ -148,11 +183,18 @@ const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onSuccess }) => {
 
             <div className="space-y-2">
               <Label htmlFor="category">Category *</Label>
-              <Input
-                id="category"
-                {...register('category', { required: 'Category is required' })}
-                placeholder="e.g., Wikipedia Editing, Research"
-              />
+              <Select onValueChange={(value) => setValue('category', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {COURSE_CATEGORIES.map((category) => (
+                    <SelectItem key={category.value} value={category.value}>
+                      {category.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {errors.category && (
                 <p className="text-sm text-red-600">{errors.category.message}</p>
               )}

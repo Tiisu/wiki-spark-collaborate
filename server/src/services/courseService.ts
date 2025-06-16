@@ -186,6 +186,38 @@ class CourseService {
     }
   }
 
+  // Toggle course publish status
+  async togglePublish(courseId: string, instructorId: string): Promise<ICourse | null> {
+    try {
+      const course = await Course.findOne({ _id: courseId, instructor: instructorId });
+
+      if (!course) {
+        return null;
+      }
+
+      // Toggle the publish status
+      const newPublishStatus = !course.isPublished;
+      const newStatus = newPublishStatus ? CourseStatus.PUBLISHED : CourseStatus.DRAFT;
+
+      const updatedCourse = await Course.findByIdAndUpdate(
+        courseId,
+        {
+          $set: {
+            isPublished: newPublishStatus,
+            status: newStatus
+          }
+        },
+        { new: true, runValidators: true }
+      ).populate('instructor', 'firstName lastName username bio');
+
+      logger.info(`Course ${courseId} ${newPublishStatus ? 'published' : 'unpublished'} by instructor ${instructorId}`);
+      return updatedCourse;
+    } catch (error) {
+      logger.error('Failed to toggle course publish status:', error);
+      throw error;
+    }
+  }
+
   // Get courses by instructor
   async getCoursesByInstructor(instructorId: string): Promise<ICourse[]> {
     try {

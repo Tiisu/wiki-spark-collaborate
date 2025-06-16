@@ -108,6 +108,26 @@ export const deleteCourse = catchAsync(async (req: AuthRequest, res: Response) =
   });
 });
 
+// Toggle course publish status (course instructor only)
+export const togglePublish = catchAsync(async (req: AuthRequest, res: Response) => {
+  if (!req.user) {
+    throw new AppError('User not found', 404);
+  }
+
+  const { id } = req.params;
+  const course = await courseService.togglePublish(id, req.user._id);
+
+  if (!course) {
+    throw new AppError('Course not found or you are not authorized to modify it', 404);
+  }
+
+  res.status(200).json({
+    success: true,
+    message: `Course ${course.isPublished ? 'published' : 'unpublished'} successfully`,
+    data: { course }
+  });
+});
+
 // Get courses by instructor
 export const getInstructorCourses = catchAsync(async (req: AuthRequest, res: Response) => {
   if (!req.user) {
