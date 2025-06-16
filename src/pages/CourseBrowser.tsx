@@ -85,7 +85,11 @@ const CourseBrowser = () => {
     }
   });
 
-  const courses = coursesData?.courses || [];
+  // Transform courses to ensure they have an id field
+  const courses = (coursesData?.courses || []).map(course => ({
+    ...course,
+    id: course.id || (course as any)._id // Handle both id and _id from backend
+  }));
   const pagination = coursesData?.pagination;
 
   const getDifficultyColor = (difficulty: string | undefined) => {
@@ -247,15 +251,26 @@ const CourseBrowser = () => {
                   <div className="flex gap-2">
                     <Button
                       className="flex-1"
-                      onClick={() => enrollMutation.mutate(course.id)}
-                      disabled={enrollMutation.isPending}
+                      onClick={() => {
+                        if (!course.id) {
+                          console.error('Course ID is missing:', course);
+                          return;
+                        }
+                        enrollMutation.mutate(course.id);
+                      }}
+                      disabled={enrollMutation.isPending || !course.id}
                     >
                       <Play className="h-4 w-4 mr-2" />
                       Enroll Now
                     </Button>
                     <Button
                       variant="outline"
-                      onClick={() => navigate(`/course/${course.id}`)}
+                      onClick={() => {
+                        if (course.id) {
+                          navigate(`/course/${course.id}`);
+                        }
+                      }}
+                      disabled={!course.id}
                     >
                       Preview
                     </Button>

@@ -195,6 +195,23 @@ export interface Course {
   modules?: Module[];
 }
 
+// Enrollment interface
+export interface Enrollment {
+  _id: string;
+  user: string;
+  course: Course;
+  status: 'ACTIVE' | 'COMPLETED' | 'DROPPED' | 'SUSPENDED';
+  progress: number;
+  completedLessons: string[];
+  lastAccessedLesson?: string;
+  enrolledAt: string;
+  completedAt?: string;
+  certificateIssued: boolean;
+  timeSpent?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Module {
   id: string;
   title: string;
@@ -313,6 +330,14 @@ export const courseApi = {
 
     const response = await apiRequest<{ courses: Course[]; pagination: any }>(
       `/api/courses/enrolled?${queryParams.toString()}`
+    );
+    return response.data!;
+  },
+
+  // Get user's enrollments with detailed enrollment data
+  getMyEnrollments: async (): Promise<{ enrollments: Enrollment[] }> => {
+    const response = await apiRequest<{ enrollments: Enrollment[] }>(
+      '/api/courses/enrollments'
     );
     return response.data!;
   },
@@ -816,24 +841,89 @@ export const lessonApi = {
 
 // Learning API functions
 export const learningApi = {
-  // Get user's learning progress
+  // Get user's learning progress (calculated from enrollments)
   getUserProgress: async (): Promise<any> => {
-    const response = await apiRequest<any>('/api/learning/progress');
-    return response.data!;
+    try {
+      // Get user enrollments to calculate progress
+      const enrollmentsResponse = await courseApi.getMyEnrollments();
+      const enrollments = enrollmentsResponse.enrollments;
+
+      // Calculate overview stats
+      const coursesEnrolled = enrollments.length;
+      const coursesCompleted = enrollments.filter(e => e.status === 'COMPLETED').length;
+      const totalLessons = enrollments.reduce((sum, e) => sum + (e.course.totalLessons || 0), 0);
+      const lessonsCompleted = enrollments.reduce((sum, e) => sum + (e.course.completedLessons || 0), 0);
+      const studyTimeHours = Math.round(enrollments.reduce((sum, e) => sum + (e.timeSpent || 0), 0) / 60);
+
+      // Mock data for features not yet implemented
+      const progressData = {
+        overview: {
+          coursesEnrolled,
+          coursesCompleted,
+          lessonsCompleted,
+          totalLessons,
+          studyTimeHours,
+          communityPoints: lessonsCompleted * 10, // 10 points per lesson
+          currentStreak: Math.min(7, lessonsCompleted), // Mock streak
+          weeklyGoalProgress: 75 // Mock weekly progress
+        },
+        recentActivity: enrollments.slice(0, 5).map((enrollment, index) => ({
+          id: `activity-${index}`,
+          type: enrollment.status === 'COMPLETED' ? 'course_started' : 'lesson_completed' as const,
+          title: enrollment.course.title,
+          courseName: enrollment.course.title,
+          timestamp: enrollment.enrolledAt
+        })),
+        weeklyStats: {
+          lessonsThisWeek: Math.min(5, lessonsCompleted),
+          hoursThisWeek: Math.min(10, studyTimeHours),
+          goalLessons: 5,
+          goalHours: 10
+        }
+      };
+
+      return progressData;
+    } catch (error) {
+      console.error('Failed to get user progress:', error);
+      // Return default empty progress data
+      return {
+        overview: {
+          coursesEnrolled: 0,
+          coursesCompleted: 0,
+          lessonsCompleted: 0,
+          totalLessons: 0,
+          studyTimeHours: 0,
+          communityPoints: 0,
+          currentStreak: 0,
+          weeklyGoalProgress: 0
+        },
+        recentActivity: [],
+        weeklyStats: {
+          lessonsThisWeek: 0,
+          hoursThisWeek: 0,
+          goalLessons: 5,
+          goalHours: 10
+        }
+      };
+    }
   },
 
   // Mark lesson as completed
   markLessonComplete: async (lessonId: string): Promise<void> => {
-    await apiRequest(`/api/learning/lessons/${lessonId}/complete`, {
-      method: 'POST',
+    await apiRequest(`/api/courses/lessons/${lessonId}/progress`, {
+      method: 'PUT',
+      body: JSON.stringify({ status: 'COMPLETED', completionPercentage: 100 }),
     });
   },
 
   // Update lesson progress
   updateLessonProgress: async (lessonId: string, data: { timeSpent?: number; progress?: number }): Promise<void> => {
-    await apiRequest(`/api/learning/lessons/${lessonId}/progress`, {
+    await apiRequest(`/api/courses/lessons/${lessonId}/progress`, {
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        timeSpent: data.timeSpent,
+        completionPercentage: data.progress,
+      }),
     });
   },
 };
@@ -971,6 +1061,14 @@ export const quizApi = {
 export const achievementApi = {
   // Get current user's achievements
   getMyAchievements: async (): Promise<{ achievements: Achievement[] }> => {
+    const response = await apiRequest<{ achievements: Achievement[] }>(
+      '/api/achievements/my'
+    );
+    return response.data!;
+  },
+
+  // Alias for getMyAchievements (for compatibility)
+  getUserAchievements: async (): Promise<{ achievements: Achievement[] }> => {
     const response = await apiRequest<{ achievements: Achievement[] }>(
       '/api/achievements/my'
     );
