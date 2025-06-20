@@ -89,7 +89,7 @@ export const WikipediaCourseCard: React.FC<WikipediaCourseCardProps> = ({
     if (isCompleted) {
       return (
         <Button asChild className="w-full">
-          <RouterLink to={`/courses/${course._id}`}>
+          <RouterLink to={`/certificates/course/${course._id}`}>
             <Trophy className="h-4 w-4 mr-2" />
             View Certificate
           </RouterLink>
@@ -100,7 +100,7 @@ export const WikipediaCourseCard: React.FC<WikipediaCourseCardProps> = ({
     if (isEnrolled) {
       return (
         <Button asChild className="w-full">
-          <RouterLink to={`/courses/${course._id}`}>
+          <RouterLink to={`/course/${course._id}`}>
             <Play className="h-4 w-4 mr-2" />
             Continue Learning
           </RouterLink>

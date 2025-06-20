@@ -270,8 +270,43 @@ export const courseApi = {
 
   // Get single course by ID
   getCourse: async (id: string): Promise<Course> => {
-    const response = await apiRequest<Course>(`/api/courses/${id}`);
-    return response.data!;
+    const response = await apiRequest<{ course: any }>(`/api/courses/${id}`);
+    const courseData = response.data!.course;
+
+    // Transform the API response to match frontend expectations
+    return {
+      id: courseData._id,
+      title: courseData.title,
+      description: courseData.description,
+      instructor: courseData.instructor,
+      thumbnail: courseData.thumbnail,
+      totalLessons: courseData.totalLessons || 0,
+      completedLessons: 0, // This should come from enrollment data
+      estimatedHours: courseData.duration ? Math.ceil(courseData.duration / 60) : 0,
+      difficulty: courseData.level || 'Beginner',
+      category: courseData.category,
+      rating: courseData.rating || 0,
+      progress: 0, // This should come from enrollment data
+      modules: courseData.modules?.map((module: any) => ({
+        id: module._id,
+        title: module.title,
+        description: module.description || '',
+        order: module.order,
+        lessons: module.lessons?.map((lesson: any) => ({
+          id: lesson._id,
+          title: lesson.title,
+          content: lesson.content,
+          type: lesson.type,
+          videoUrl: lesson.videoUrl,
+          duration: lesson.duration,
+          order: lesson.order,
+          isCompleted: false, // This should come from enrollment data
+          progress: 0, // This should come from enrollment data
+          moduleId: lesson.module,
+          resources: lesson.resources || []
+        })) || []
+      })) || []
+    } as Course;
   },
 
   // Create new course (admin/instructor)

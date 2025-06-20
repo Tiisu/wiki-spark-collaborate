@@ -361,7 +361,7 @@ const LearningPath = () => {
                           if (step.status === 'current' || step.status === 'available') {
                             if (step.courseId) {
                               // Navigate to course
-                              window.location.href = `/courses/${step.courseId}`;
+                              window.location.href = `/course/${step.courseId}`;
                             } else {
                               // Complete step directly for non-course steps
                               completeStepMutation.mutate({

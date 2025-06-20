@@ -19,6 +19,7 @@ import {
   Users
 } from 'lucide-react';
 import { WikipediaCourseCard } from '../courses/WikipediaCourseCard';
+import { useNavigate } from 'react-router-dom';
 import { AchievementCard } from '../achievements/AchievementCard';
 import { CertificateCard } from '../certificates/CertificateCard';
 import { 
@@ -36,9 +37,10 @@ interface WikipediaLearningDashboardProps {
   className?: string;
 }
 
-export const WikipediaLearningDashboard: React.FC<WikipediaLearningDashboardProps> = ({ 
-  className = '' 
+export const WikipediaLearningDashboard: React.FC<WikipediaLearningDashboardProps> = ({
+  className = ''
 }) => {
+  const navigate = useNavigate();
   const [enrolledCourses, setEnrolledCourses] = useState<Course[]>([]);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
@@ -328,6 +330,7 @@ export const WikipediaLearningDashboard: React.FC<WikipediaLearningDashboardProp
                 <CertificateCard
                   key={certificate._id}
                   certificate={certificate}
+                  onView={() => navigate(`/certificates/course/${certificate.course}`)}
                 />
               ))}
             </div>

@@ -501,7 +501,7 @@ const CourseViewer = () => {
                 <CardTitle className="text-lg">Course Content</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4 max-h-[70vh] overflow-y-auto">
-                {course?.modules?.length === 0 ? (
+                {!course?.modules || course.modules.length === 0 ? (
                   <div className="text-center py-8">
                     <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                     <h3 className="text-lg font-semibold text-foreground mb-2">No modules available</h3>
@@ -512,7 +512,7 @@ const CourseViewer = () => {
                     <div key={module.id} className="space-y-2">
                       <h4 className="font-semibold text-sm text-foreground">{module.title}</h4>
                       <div className="space-y-1">
-                        {module.lessons?.length === 0 ? (
+                        {!module.lessons || module.lessons.length === 0 ? (
                           <div className="text-center py-4 border border-dashed rounded-lg">
                             <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
                             <p className="text-sm text-muted-foreground">No lessons available in this module</p>

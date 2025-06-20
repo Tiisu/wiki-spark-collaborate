@@ -50,9 +50,15 @@ class CertificateService {
       const instructor = course.instructor as any;
       const instructorName = `${instructor.firstName} ${instructor.lastName}`;
 
+      // Generate verification code
+      const year = new Date().getFullYear();
+      const randomCode = require('crypto').randomBytes(4).toString('hex').toUpperCase();
+      const verificationCode = `WWT-${year}-${randomCode}`;
+
       const certificate = new Certificate({
         user: data.userId,
         course: data.courseId,
+        verificationCode,
         completionDate: data.completionDate,
         finalScore: data.finalScore,
         timeSpent: data.timeSpent,

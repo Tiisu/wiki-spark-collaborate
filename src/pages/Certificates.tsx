@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Trophy, Award, Shield, Download, Share2 } from 'lucide-react';
+import { Trophy, Award, Shield, Download, Share2, ArrowLeft } from 'lucide-react';
 import { CertificateCard } from '@/components/certificates/CertificateCard';
 import { CertificateVerification } from '@/components/certificates/CertificateVerification';
 import { Certificate, certificateApi } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 
 const Certificates: React.FC = () => {
+  const { courseId } = useParams<{ courseId?: string }>();
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -81,14 +83,32 @@ const Certificates: React.FC = () => {
     );
   }
 
+  // Filter certificates by course if courseId is provided
+  const filteredCertificates = courseId
+    ? certificates.filter(cert => cert.course === courseId)
+    : certificates;
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
+        {courseId && (
+          <Button
+            variant="ghost"
+            className="mb-4"
+            onClick={() => window.history.back()}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Course
+          </Button>
+        )}
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Certificates
+          {courseId ? 'Course Certificate' : 'Certificates'}
         </h1>
         <p className="text-gray-600">
-          View and manage your WikiWalkthrough course completion certificates.
+          {courseId
+            ? 'View your certificate for this completed course.'
+            : 'View and manage your WikiWalkthrough course completion certificates.'
+          }
         </p>
       </div>
 
@@ -99,41 +119,43 @@ const Certificates: React.FC = () => {
         </TabsList>
 
         <TabsContent value="my-certificates" className="space-y-6">
-          {certificates.length > 0 ? (
+          {filteredCertificates.length > 0 ? (
             <>
-              {/* Statistics */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Award className="h-5 w-5 text-blue-600" />
-                    <span>Certificate Overview</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-                    <div>
-                      <div className="text-2xl font-bold text-blue-600">{certificates.length}</div>
-                      <div className="text-sm text-muted-foreground">Total Certificates</div>
-                    </div>
-                    <div>
-                      <div className="text-2xl font-bold text-green-600">
-                        {certificates.filter(c => c.isValid).length}
+              {/* Statistics - only show for general certificates view */}
+              {!courseId && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <Award className="h-5 w-5 text-blue-600" />
+                      <span>Certificate Overview</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                      <div>
+                        <div className="text-2xl font-bold text-blue-600">{certificates.length}</div>
+                        <div className="text-sm text-muted-foreground">Total Certificates</div>
                       </div>
-                      <div className="text-sm text-muted-foreground">Valid Certificates</div>
-                    </div>
-                    <div>
-                      <div className="text-2xl font-bold text-purple-600">
-                        {new Set(certificates.map(c => c.courseLevel)).size}
+                      <div>
+                        <div className="text-2xl font-bold text-green-600">
+                          {certificates.filter(c => c.isValid).length}
+                        </div>
+                        <div className="text-sm text-muted-foreground">Valid Certificates</div>
                       </div>
-                      <div className="text-sm text-muted-foreground">Skill Levels</div>
+                      <div>
+                        <div className="text-2xl font-bold text-purple-600">
+                          {new Set(certificates.map(c => c.courseLevel)).size}
+                        </div>
+                        <div className="text-sm text-muted-foreground">Skill Levels</div>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Certificates Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {certificates.map(certificate => (
+                {filteredCertificates.map(certificate => (
                   <CertificateCard
                     key={certificate._id}
                     certificate={certificate}
@@ -147,12 +169,19 @@ const Certificates: React.FC = () => {
             <Card>
               <CardContent className="pt-6 text-center">
                 <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No Certificates Yet</h3>
+                <h3 className="text-lg font-semibold mb-2">
+                  {courseId ? 'No Certificate Available' : 'No Certificates Yet'}
+                </h3>
                 <p className="text-muted-foreground mb-4">
-                  Complete courses to earn your first certificate of completion
+                  {courseId
+                    ? 'You haven\'t earned a certificate for this course yet. Complete all lessons and requirements to earn your certificate.'
+                    : 'Complete courses to earn your first certificate of completion'
+                  }
                 </p>
                 <Button asChild>
-                  <a href="/courses">Browse Courses</a>
+                  <a href={courseId ? `/course/${courseId}` : "/courses"}>
+                    {courseId ? 'Continue Course' : 'Browse Courses'}
+                  </a>
                 </Button>
               </CardContent>
             </Card>

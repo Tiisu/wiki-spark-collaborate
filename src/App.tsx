@@ -159,6 +159,14 @@ const App = () => (
                 }
               />
               <Route
+                path="/certificates/course/:courseId"
+                element={
+                  <ProtectedRoute>
+                    <Certificates />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/verify/:verificationCode"
                 element={<Certificates />}
               />
