@@ -300,8 +300,8 @@ export const courseApi = {
           videoUrl: lesson.videoUrl,
           duration: lesson.duration,
           order: lesson.order,
-          isCompleted: false, // This should come from enrollment data
-          progress: 0, // This should come from enrollment data
+          isCompleted: lesson.isCompleted || false, // Now comes from backend with progress
+          progress: lesson.progress?.completionPercentage || 0, // Now comes from backend with progress
           moduleId: lesson.module,
           resources: lesson.resources || []
         })) || []
@@ -673,13 +673,27 @@ export interface CreateLessonData {
 // Quiz interfaces
 export interface QuizQuestion {
   id: string;
-  type: 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'FILL_IN_BLANK' | 'MATCHING' | 'ORDERING';
+  type: 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'FILL_IN_BLANK' | 'MATCHING' | 'ORDERING' | 'SHORT_ANSWER' | 'ESSAY';
   question: string;
   options?: string[];
   correctAnswer: string | string[];
   explanation?: string;
   points: number;
   order: number;
+
+  // Additional fields for new question types
+  maxLength?: number;
+  minLength?: number;
+  keywords?: string[];
+  rubric?: {
+    criteria: string;
+    points: number;
+    description: string;
+  }[];
+  caseSensitive?: boolean;
+  allowPartialCredit?: boolean;
+  weight?: number;
+  difficulty?: 'easy' | 'medium' | 'hard';
 }
 
 export interface Quiz {
@@ -697,6 +711,13 @@ export interface Quiz {
   isRequired: boolean;
   order: number;
   isPublished: boolean;
+
+  // Question randomization settings
+  randomizeQuestions?: boolean;
+  randomizeOptions?: boolean;
+  questionsPerAttempt?: number;
+  questionBank?: QuizQuestion[];
+
   createdAt: string;
   updatedAt: string;
 }

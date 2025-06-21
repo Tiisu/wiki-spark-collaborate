@@ -187,13 +187,25 @@ export interface DatabaseConfig {
 // Quiz interfaces
 export interface IQuizQuestion {
   id: string;
-  type: 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'FILL_IN_BLANK' | 'MATCHING' | 'ORDERING';
+  type: 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'FILL_IN_BLANK' | 'MATCHING' | 'ORDERING' | 'SHORT_ANSWER' | 'ESSAY';
   question: string;
   options?: string[];
   correctAnswer: string | string[];
   explanation?: string;
   points: number;
   order: number;
+
+  // Additional fields for new question types
+  maxLength?: number;
+  minLength?: number;
+  keywords?: string[];
+  rubric?: {
+    criteria: string;
+    points: number;
+    description: string;
+  }[];
+  caseSensitive?: boolean;
+  allowPartialCredit?: boolean;
 }
 
 export interface IQuiz extends Document {

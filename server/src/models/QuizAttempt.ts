@@ -5,6 +5,10 @@ export interface IQuizAnswer {
   userAnswer: string | string[];
   isCorrect: boolean;
   pointsEarned: number;
+  maxPoints: number;
+  weight?: number;
+  weightedPointsEarned?: number;
+  partialCredit?: number; // 0-1 for partial credit percentage
   timeSpent?: number; // in seconds
 }
 
@@ -15,9 +19,12 @@ export interface IQuizAttempt extends mongoose.Document {
   course: mongoose.Types.ObjectId;
   lesson: mongoose.Types.ObjectId;
   answers: IQuizAnswer[];
-  score: number; // Percentage (0-100)
+  score: number; // Weighted percentage (0-100)
+  rawScore?: number; // Unweighted percentage (0-100)
   totalPoints: number;
   earnedPoints: number;
+  totalWeightedPoints?: number;
+  earnedWeightedPoints?: number;
   passed: boolean;
   timeSpent: number; // Total time in seconds
   startedAt: Date;
@@ -45,6 +52,25 @@ const quizAnswerSchema = new Schema({
     type: Number,
     required: true,
     min: [0, 'Points earned cannot be negative']
+  },
+  maxPoints: {
+    type: Number,
+    required: true,
+    min: [0, 'Max points cannot be negative']
+  },
+  weight: {
+    type: Number,
+    default: 1,
+    min: [0.1, 'Weight must be at least 0.1']
+  },
+  weightedPointsEarned: {
+    type: Number,
+    min: [0, 'Weighted points earned cannot be negative']
+  },
+  partialCredit: {
+    type: Number,
+    min: [0, 'Partial credit cannot be negative'],
+    max: [1, 'Partial credit cannot exceed 1']
   },
   timeSpent: {
     type: Number,
@@ -80,6 +106,11 @@ const quizAttemptSchema = new Schema<IQuizAttempt>({
     min: [0, 'Score cannot be negative'],
     max: [100, 'Score cannot exceed 100']
   },
+  rawScore: {
+    type: Number,
+    min: [0, 'Raw score cannot be negative'],
+    max: [100, 'Raw score cannot exceed 100']
+  },
   totalPoints: {
     type: Number,
     required: true,
@@ -89,6 +120,14 @@ const quizAttemptSchema = new Schema<IQuizAttempt>({
     type: Number,
     required: true,
     min: [0, 'Earned points cannot be negative']
+  },
+  totalWeightedPoints: {
+    type: Number,
+    min: [0, 'Total weighted points cannot be negative']
+  },
+  earnedWeightedPoints: {
+    type: Number,
+    min: [0, 'Earned weighted points cannot be negative']
   },
   passed: {
     type: Boolean,

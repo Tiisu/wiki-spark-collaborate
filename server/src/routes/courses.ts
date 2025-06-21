@@ -35,7 +35,7 @@ import {
   togglePublish as toggleLessonPublish,
   bulkPublishLessons
 } from '../controllers/lessonController';
-import { authenticate, requireInstructor } from '../middleware/auth';
+import { authenticate, requireInstructor, optionalAuthenticate } from '../middleware/auth';
 import { apiLimiter } from '../middleware/rateLimiter';
 
 const router = Router();
@@ -392,7 +392,7 @@ router.post('/', authenticate, requireInstructor, createCourse);
  *       404:
  *         description: Course not found
  */
-router.get('/:id', getCourseById);
+router.get('/:id', optionalAuthenticate, getCourseById);
 
 /**
  * @swagger

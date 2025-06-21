@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import quizService from '../services/quizService';
+import quizAnalyticsService from '../services/quizAnalyticsService';
 import { catchAsync, AppError } from '../middleware/errorHandler';
 import { AuthRequest } from '../types';
 import logger from '../utils/logger';
@@ -23,15 +24,21 @@ export const createQuiz = catchAsync(async (req: AuthRequest, res: Response) => 
 // Get quiz by ID
 export const getQuizById = catchAsync(async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
-  const { includeAnswers } = req.query;
-  
+  const { includeAnswers, randomize } = req.query;
+
   // Only instructors and admins can see answers
-  const canSeeAnswers = req.user && 
+  const canSeeAnswers = req.user &&
     ['INSTRUCTOR', 'MENTOR', 'ADMIN', 'SUPER_ADMIN'].includes(req.user.role);
-  
+
   const showAnswers = includeAnswers === 'true' && canSeeAnswers;
-  
-  const quiz = await quizService.getQuizById(id, showAnswers);
+  const useRandomization = randomize === 'true' && req.user;
+
+  let quiz;
+  if (useRandomization && req.user) {
+    quiz = await quizService.getRandomizedQuiz(id, req.user._id, showAnswers);
+  } else {
+    quiz = await quizService.getQuizById(id, showAnswers);
+  }
 
   if (!quiz) {
     throw new AppError('Quiz not found', 404);
@@ -141,19 +148,41 @@ export const getQuizStats = catchAsync(async (req: AuthRequest, res: Response) =
   }
 
   const { id } = req.params;
+  const { startDate, endDate } = req.query;
 
-  // This would be implemented to get quiz performance statistics
-  // For now, return a placeholder response
+  // Parse date range if provided
+  let dateRange;
+  if (startDate && endDate) {
+    dateRange = {
+      start: new Date(startDate as string),
+      end: new Date(endDate as string)
+    };
+  }
+
+  const analytics = await quizAnalyticsService.getQuizAnalytics(id, dateRange);
+
   res.status(200).json({
     success: true,
     message: 'Quiz statistics retrieved successfully',
-    data: {
-      quizId: id,
-      totalAttempts: 0,
-      averageScore: 0,
-      passRate: 0,
-      message: 'Quiz statistics feature coming soon'
-    }
+    data: analytics
+  });
+});
+
+// Get student progress analytics
+export const getStudentProgress = catchAsync(async (req: AuthRequest, res: Response) => {
+  if (!req.user) {
+    throw new AppError('User not found', 404);
+  }
+
+  const { id } = req.params;
+  const { studentId } = req.query;
+
+  const progress = await quizAnalyticsService.getStudentProgress(id, studentId as string);
+
+  res.status(200).json({
+    success: true,
+    message: 'Student progress retrieved successfully',
+    data: { progress }
   });
 });
 
@@ -165,41 +194,37 @@ export const startQuizAttempt = catchAsync(async (req: AuthRequest, res: Respons
 
   const { id } = req.params;
 
-  // Get quiz to check if it exists and get time limit
-  const quiz = await quizService.getQuizById(id, false);
-  if (!quiz) {
-    throw new AppError('Quiz not found', 404);
+  try {
+    const attemptData = await quizService.startQuizAttempt(req.user._id, id);
+
+    res.status(200).json({
+      success: true,
+      message: 'Quiz attempt started successfully',
+      data: attemptData
+    });
+  } catch (error: any) {
+    throw new AppError(error.message, 400);
+  }
+});
+
+// Validate quiz attempt
+export const validateQuizAttempt = catchAsync(async (req: AuthRequest, res: Response) => {
+  if (!req.user) {
+    throw new AppError('User not found', 404);
   }
 
-  // Check if user has exceeded max attempts
-  const userAttempts = await quizService.getUserQuizAttempts(req.user._id, id);
-  
-  if (quiz.maxAttempts && userAttempts.length >= quiz.maxAttempts) {
-    throw new AppError('Maximum attempts exceeded', 400);
-  }
+  const { id, attemptId } = req.params;
+
+  const validation = await quizService.validateQuizAttempt(req.user._id, id, attemptId);
 
   res.status(200).json({
     success: true,
-    message: 'Quiz attempt started',
-    data: {
-      quiz: {
-        id: quiz._id,
-        title: quiz.title,
-        timeLimit: quiz.timeLimit,
-        questions: quiz.questions.map(q => ({
-          id: q.id,
-          type: q.type,
-          question: q.question,
-          options: q.options,
-          points: q.points,
-          order: q.order
-        }))
-      },
-      startTime: new Date(),
-      attemptNumber: userAttempts.length + 1
-    }
+    message: 'Quiz attempt validation completed',
+    data: validation
   });
 });
+
+
 
 // Get quiz attempt details
 export const getQuizAttempt = catchAsync(async (req: AuthRequest, res: Response) => {

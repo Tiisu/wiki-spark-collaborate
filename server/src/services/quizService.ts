@@ -1,4 +1,4 @@
-import Quiz, { IQuiz, IQuizQuestion } from '../models/Quiz';
+import Quiz, { IQuiz, IQuizQuestion, QuestionType } from '../models/Quiz';
 import QuizAttempt, { IQuizAttempt } from '../models/QuizAttempt';
 import Achievement, { BadgeType } from '../models/Achievement';
 import logger from '../utils/logger';
@@ -16,6 +16,10 @@ interface CreateQuizData {
   showScoreImmediately?: boolean;
   isRequired?: boolean;
   order: number;
+  randomizeQuestions?: boolean;
+  randomizeOptions?: boolean;
+  questionsPerAttempt?: number;
+  questionBank?: IQuizQuestion[];
 }
 
 interface SubmitQuizData {
@@ -73,6 +77,74 @@ class QuizService {
     }
   }
 
+  // Get randomized quiz for attempt
+  async getRandomizedQuiz(quizId: string, userId: string, includeAnswers: boolean = false): Promise<IQuiz | null> {
+    try {
+      const quiz = await Quiz.findById(quizId)
+        .populate('lesson', 'title')
+        .populate('course', 'title')
+        .lean();
+
+      if (!quiz) return null;
+
+      let questions = [...quiz.questions];
+
+      // Use question bank if available and questionsPerAttempt is set
+      if (quiz.questionBank && quiz.questionBank.length > 0 && quiz.questionsPerAttempt) {
+        questions = this.selectRandomQuestions(quiz.questionBank, quiz.questionsPerAttempt);
+      }
+
+      // Randomize question order if enabled
+      if (quiz.randomizeQuestions) {
+        questions = this.shuffleArray(questions);
+      }
+
+      // Randomize options for multiple choice questions if enabled
+      if (quiz.randomizeOptions) {
+        questions = questions.map(question => {
+          if (question.type === QuestionType.MULTIPLE_CHOICE && question.options) {
+            const shuffledOptions = this.shuffleArray([...question.options]);
+            return { ...question, options: shuffledOptions };
+          }
+          return question;
+        });
+      }
+
+      // Remove correct answers if not requested
+      if (!includeAnswers) {
+        questions = questions.map(q => {
+          const { correctAnswer, explanation, ...questionWithoutAnswers } = q;
+          return questionWithoutAnswers;
+        }) as any;
+      }
+
+      return { ...quiz, questions };
+    } catch (error) {
+      logger.error('Failed to get randomized quiz:', error);
+      throw error;
+    }
+  }
+
+  // Select random questions from question bank
+  private selectRandomQuestions(questionBank: IQuizQuestion[], count: number): IQuizQuestion[] {
+    if (questionBank.length <= count) {
+      return [...questionBank];
+    }
+
+    const shuffled = this.shuffleArray([...questionBank]);
+    return shuffled.slice(0, count);
+  }
+
+  // Shuffle array using Fisher-Yates algorithm
+  private shuffleArray<T>(array: T[]): T[] {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  }
+
   // Get quizzes for a lesson
   async getQuizzesByLesson(lessonId: string): Promise<IQuiz[]> {
     try {
@@ -105,15 +177,30 @@ class QuizService {
         });
 
         if (attemptCount >= quiz.maxAttempts) {
-          throw new Error('Maximum attempts exceeded');
+          throw new Error(`Maximum attempts exceeded. You have already completed ${attemptCount} attempts out of ${quiz.maxAttempts} allowed.`);
+        }
+      }
+
+      // Validate time limit if set
+      if (quiz.timeLimit && submissionData.timeSpent) {
+        const timeLimitSeconds = quiz.timeLimit * 60;
+        const gracePeriodSeconds = 30; // Allow 30 seconds grace period for network delays
+
+        if (submissionData.timeSpent > timeLimitSeconds + gracePeriodSeconds) {
+          throw new Error(`Time limit exceeded. Quiz must be completed within ${quiz.timeLimit} minutes.`);
         }
       }
 
       // Calculate score
-      const { answers, score, totalPoints, earnedPoints } = this.calculateScore(
-        quiz.questions,
-        submissionData.answers
-      );
+      const {
+        answers,
+        score,
+        rawScore,
+        totalPoints,
+        earnedPoints,
+        totalWeightedPoints,
+        earnedWeightedPoints
+      } = this.calculateScore(quiz.questions, submissionData.answers);
 
       const passed = score >= quiz.passingScore;
       const attemptNumber = await this.getNextAttemptNumber(userId, quizId);
@@ -125,8 +212,11 @@ class QuizService {
         lesson: quiz.lesson,
         answers,
         score,
+        rawScore,
         totalPoints,
         earnedPoints,
+        totalWeightedPoints,
+        earnedWeightedPoints,
         passed,
         timeSpent: submissionData.timeSpent,
         attemptNumber,
@@ -149,30 +239,133 @@ class QuizService {
     }
   }
 
-  // Calculate quiz score
+  // Calculate quiz score with weighted scoring and partial credit
   private calculateScore(questions: IQuizQuestion[], userAnswers: Array<{ questionId: string; userAnswer: string | string[] }>) {
-    let totalPoints = 0;
-    let earnedPoints = 0;
-    
+    let totalWeightedPoints = 0;
+    let earnedWeightedPoints = 0;
+    let totalRawPoints = 0;
+    let earnedRawPoints = 0;
+
     const answers = questions.map(question => {
       const userAnswer = userAnswers.find(a => a.questionId === question.id);
-      const isCorrect = this.isAnswerCorrect(question, userAnswer?.userAnswer);
-      const pointsEarned = isCorrect ? question.points : 0;
-      
-      totalPoints += question.points;
-      earnedPoints += pointsEarned;
-      
+      const weight = question.weight || 1;
+      const rawPoints = question.points;
+      const weightedPoints = rawPoints * weight;
+
+      // Calculate points earned (with partial credit support)
+      const { isCorrect, pointsEarned, partialCredit } = this.calculateQuestionScore(question, userAnswer?.userAnswer);
+      const weightedPointsEarned = pointsEarned * weight;
+
+      totalRawPoints += rawPoints;
+      earnedRawPoints += pointsEarned;
+      totalWeightedPoints += weightedPoints;
+      earnedWeightedPoints += weightedPointsEarned;
+
       return {
         questionId: question.id,
         userAnswer: userAnswer?.userAnswer || '',
         isCorrect,
-        pointsEarned
+        pointsEarned,
+        maxPoints: rawPoints,
+        weight,
+        weightedPointsEarned,
+        partialCredit
       };
     });
 
-    const score = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
+    const score = totalWeightedPoints > 0 ? Math.round((earnedWeightedPoints / totalWeightedPoints) * 100) : 0;
+    const rawScore = totalRawPoints > 0 ? Math.round((earnedRawPoints / totalRawPoints) * 100) : 0;
 
-    return { answers, score, totalPoints, earnedPoints };
+    return {
+      answers,
+      score,
+      rawScore,
+      totalPoints: totalRawPoints,
+      earnedPoints: earnedRawPoints,
+      totalWeightedPoints,
+      earnedWeightedPoints
+    };
+  }
+
+  // Calculate score for individual question with partial credit support
+  private calculateQuestionScore(question: IQuizQuestion, userAnswer: string | string[] | undefined): {
+    isCorrect: boolean;
+    pointsEarned: number;
+    partialCredit?: number;
+  } {
+    if (!userAnswer) {
+      return { isCorrect: false, pointsEarned: 0 };
+    }
+
+    const maxPoints = question.points;
+
+    switch (question.type) {
+      case QuestionType.SHORT_ANSWER:
+        return this.calculateShortAnswerScore(question, userAnswer as string, maxPoints);
+
+      case QuestionType.ESSAY:
+      case QuestionType.MATCHING:
+      case QuestionType.ORDERING:
+        // These require manual grading
+        return { isCorrect: false, pointsEarned: 0 };
+
+      case QuestionType.MULTIPLE_CHOICE:
+      case QuestionType.TRUE_FALSE:
+      case QuestionType.FILL_IN_BLANK:
+        const isCorrect = this.isAnswerCorrect(question, userAnswer);
+        return {
+          isCorrect,
+          pointsEarned: isCorrect ? maxPoints : 0
+        };
+
+      default:
+        const correct = this.isAnswerCorrect(question, userAnswer);
+        return {
+          isCorrect: correct,
+          pointsEarned: correct ? maxPoints : 0
+        };
+    }
+  }
+
+  // Calculate short answer score with partial credit
+  private calculateShortAnswerScore(question: IQuizQuestion, userAnswer: string, maxPoints: number): {
+    isCorrect: boolean;
+    pointsEarned: number;
+    partialCredit?: number;
+  } {
+    if (!userAnswer || typeof userAnswer !== 'string') {
+      return { isCorrect: false, pointsEarned: 0 };
+    }
+
+    const answer = question.caseSensitive ? userAnswer.trim() : userAnswer.trim().toLowerCase();
+    const correctAnswer = question.correctAnswer as string;
+    const normalizedCorrect = question.caseSensitive ? correctAnswer.trim() : correctAnswer.trim().toLowerCase();
+
+    // Exact match - full points
+    if (answer === normalizedCorrect) {
+      return { isCorrect: true, pointsEarned: maxPoints };
+    }
+
+    // Keyword matching with partial credit
+    if (question.allowPartialCredit && question.keywords && question.keywords.length > 0) {
+      const keywords = question.keywords.map(k =>
+        question.caseSensitive ? k.trim() : k.trim().toLowerCase()
+      );
+
+      const matchedKeywords = keywords.filter(keyword => answer.includes(keyword));
+      const partialCreditPercentage = matchedKeywords.length / keywords.length;
+
+      if (matchedKeywords.length > 0) {
+        const pointsEarned = Math.round(maxPoints * partialCreditPercentage);
+        return {
+          isCorrect: partialCreditPercentage === 1,
+          pointsEarned,
+          partialCredit: partialCreditPercentage
+        };
+      }
+    }
+
+    return { isCorrect: false, pointsEarned: 0 };
   }
 
   // Check if answer is correct
@@ -180,21 +373,62 @@ class QuizService {
     if (!userAnswer) return false;
 
     const correctAnswer = question.correctAnswer;
-    
-    if (Array.isArray(correctAnswer)) {
-      // Multiple correct answers
-      if (Array.isArray(userAnswer)) {
-        return correctAnswer.length === userAnswer.length && 
-               correctAnswer.every(answer => userAnswer.includes(answer));
-      }
-      return correctAnswer.includes(userAnswer as string);
-    } else {
-      // Single correct answer
-      if (Array.isArray(userAnswer)) {
-        return userAnswer.length === 1 && userAnswer[0] === correctAnswer;
-      }
-      return userAnswer === correctAnswer;
+
+    // Handle different question types
+    switch (question.type) {
+      case QuestionType.SHORT_ANSWER:
+        return this.checkShortAnswer(question, userAnswer as string);
+
+      case QuestionType.ESSAY:
+        // Essays require manual grading, return false for auto-grading
+        return false;
+
+      case QuestionType.MATCHING:
+      case QuestionType.ORDERING:
+        // These require manual grading, return false for auto-grading
+        return false;
+
+      default:
+        // Handle traditional question types
+        if (Array.isArray(correctAnswer)) {
+          // Multiple correct answers
+          if (Array.isArray(userAnswer)) {
+            return correctAnswer.length === userAnswer.length &&
+                   correctAnswer.every(answer => userAnswer.includes(answer));
+          }
+          return correctAnswer.includes(userAnswer as string);
+        } else {
+          // Single correct answer
+          if (Array.isArray(userAnswer)) {
+            return userAnswer.length === 1 && userAnswer[0] === correctAnswer;
+          }
+          return userAnswer === correctAnswer;
+        }
     }
+  }
+
+  // Check short answer with keyword matching
+  private checkShortAnswer(question: IQuizQuestion, userAnswer: string): boolean {
+    if (!userAnswer || typeof userAnswer !== 'string') return false;
+
+    const answer = question.caseSensitive ? userAnswer.trim() : userAnswer.trim().toLowerCase();
+    const correctAnswer = question.correctAnswer as string;
+    const normalizedCorrect = question.caseSensitive ? correctAnswer.trim() : correctAnswer.trim().toLowerCase();
+
+    // Exact match
+    if (answer === normalizedCorrect) return true;
+
+    // Keyword matching if keywords are provided
+    if (question.keywords && question.keywords.length > 0) {
+      const keywords = question.keywords.map(k =>
+        question.caseSensitive ? k.trim() : k.trim().toLowerCase()
+      );
+
+      // Check if answer contains all required keywords
+      return keywords.every(keyword => answer.includes(keyword));
+    }
+
+    return false;
   }
 
   // Get next attempt number for user
@@ -258,6 +492,147 @@ class QuizService {
       }
     } catch (error) {
       logger.error('Failed to check achievements:', error);
+    }
+  }
+
+  // Start a new quiz attempt (for timed quizzes)
+  async startQuizAttempt(userId: string, quizId: string): Promise<{ attemptId: string; timeLimit?: number; expiresAt?: Date }> {
+    try {
+      const quiz = await Quiz.findById(quizId);
+      if (!quiz) {
+        throw new Error('Quiz not found');
+      }
+
+      // Check if user has exceeded max attempts
+      if (quiz.maxAttempts) {
+        const attemptCount = await QuizAttempt.countDocuments({
+          user: userId,
+          quiz: quizId,
+          isCompleted: true
+        });
+
+        if (attemptCount >= quiz.maxAttempts) {
+          throw new Error(`Maximum attempts exceeded. You have already completed ${attemptCount} attempts out of ${quiz.maxAttempts} allowed.`);
+        }
+      }
+
+      // Check for existing incomplete attempt
+      const existingAttempt = await QuizAttempt.findOne({
+        user: userId,
+        quiz: quizId,
+        isCompleted: false
+      });
+
+      if (existingAttempt) {
+        // Check if existing attempt has expired
+        if (quiz.timeLimit) {
+          const timeLimitMs = quiz.timeLimit * 60 * 1000;
+          const expiresAt = new Date(existingAttempt.startedAt.getTime() + timeLimitMs);
+
+          if (new Date() > expiresAt) {
+            // Mark as completed with 0 score due to timeout
+            existingAttempt.isCompleted = true;
+            existingAttempt.completedAt = new Date();
+            existingAttempt.score = 0;
+            existingAttempt.passed = false;
+            await existingAttempt.save();
+          } else {
+            // Return existing attempt
+            return {
+              attemptId: existingAttempt._id,
+              timeLimit: quiz.timeLimit,
+              expiresAt
+            };
+          }
+        } else {
+          // No time limit, return existing attempt
+          return {
+            attemptId: existingAttempt._id
+          };
+        }
+      }
+
+      // Create new attempt
+      const attemptNumber = await this.getNextAttemptNumber(userId, quizId);
+      const newAttempt = new QuizAttempt({
+        user: userId,
+        quiz: quizId,
+        course: quiz.course,
+        lesson: quiz.lesson,
+        answers: [],
+        score: 0,
+        totalPoints: 0,
+        earnedPoints: 0,
+        passed: false,
+        timeSpent: 0,
+        attemptNumber,
+        isCompleted: false,
+        startedAt: new Date()
+      });
+
+      await newAttempt.save();
+
+      const result: { attemptId: string; timeLimit?: number; expiresAt?: Date } = {
+        attemptId: newAttempt._id
+      };
+
+      if (quiz.timeLimit) {
+        result.timeLimit = quiz.timeLimit;
+        result.expiresAt = new Date(newAttempt.startedAt.getTime() + quiz.timeLimit * 60 * 1000);
+      }
+
+      logger.info(`Quiz attempt started: User ${userId}, Quiz ${quizId}, Attempt ${attemptNumber}`);
+      return result;
+    } catch (error) {
+      logger.error('Failed to start quiz attempt:', error);
+      throw error;
+    }
+  }
+
+  // Check if quiz attempt is still valid (not expired)
+  async validateQuizAttempt(userId: string, quizId: string, attemptId: string): Promise<{ valid: boolean; timeRemaining?: number; expired?: boolean }> {
+    try {
+      const attempt = await QuizAttempt.findOne({
+        _id: attemptId,
+        user: userId,
+        quiz: quizId,
+        isCompleted: false
+      });
+
+      if (!attempt) {
+        return { valid: false };
+      }
+
+      const quiz = await Quiz.findById(quizId);
+      if (!quiz) {
+        return { valid: false };
+      }
+
+      if (quiz.timeLimit) {
+        const timeLimitMs = quiz.timeLimit * 60 * 1000;
+        const expiresAt = new Date(attempt.startedAt.getTime() + timeLimitMs);
+        const now = new Date();
+
+        if (now > expiresAt) {
+          // Mark as completed with timeout
+          attempt.isCompleted = true;
+          attempt.completedAt = now;
+          attempt.score = 0;
+          attempt.passed = false;
+          attempt.timeSpent = Math.round((now.getTime() - attempt.startedAt.getTime()) / 1000);
+          await attempt.save();
+
+          return { valid: false, expired: true };
+        }
+
+        const timeRemaining = Math.max(0, Math.round((expiresAt.getTime() - now.getTime()) / 1000));
+        return { valid: true, timeRemaining };
+      }
+
+      return { valid: true };
+    } catch (error) {
+      logger.error('Failed to validate quiz attempt:', error);
+      return { valid: false };
     }
   }
 

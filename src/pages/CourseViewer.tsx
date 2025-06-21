@@ -305,10 +305,40 @@ const CourseViewer = () => {
 
   // Update lesson progress mutation
   const updateProgressMutation = useMutation({
-    mutationFn: async ({ lessonId, timeSpent }: { lessonId: string; timeSpent?: number }) => {
-      await learningApi.updateLessonProgress(lessonId, { timeSpent });
+    mutationFn: async ({ lessonId, timeSpent, progress }: { lessonId: string; timeSpent?: number; progress?: number }) => {
+      await learningApi.updateLessonProgress(lessonId, { timeSpent, progress });
+    },
+    onMutate: async ({ lessonId, progress }) => {
+      // Only do optimistic updates for progress changes, not time updates
+      if (progress === undefined) return;
+
+      await queryClient.cancelQueries({ queryKey: ['course', courseId] });
+      const previousCourse = queryClient.getQueryData(['course', courseId]);
+
+      queryClient.setQueryData(['course', courseId], (oldData: any) => {
+        if (!oldData || !oldData.modules) return oldData;
+
+        const updatedModules = oldData.modules.map((module: any) => ({
+          ...module,
+          lessons: module.lessons?.map((lesson: any) =>
+            lesson.id === lessonId
+              ? { ...lesson, progress: Math.max(lesson.progress || 0, progress) }
+              : lesson
+          ) || []
+        }));
+
+        return { ...oldData, modules: updatedModules };
+      });
+
+      return { previousCourse };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousCourse) {
+        queryClient.setQueryData(['course', courseId], context.previousCourse);
+      }
     },
     onSuccess: () => {
+      // Only invalidate occasionally to avoid too many refetches
       queryClient.invalidateQueries({ queryKey: ['course', courseId] });
       queryClient.invalidateQueries({ queryKey: ['student-progress'] });
     }
@@ -319,7 +349,43 @@ const CourseViewer = () => {
     mutationFn: async (lessonId: string) => {
       await learningApi.markLessonComplete(lessonId);
     },
+    onMutate: async (lessonId: string) => {
+      // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
+      await queryClient.cancelQueries({ queryKey: ['course', courseId] });
+
+      // Snapshot the previous value
+      const previousCourse = queryClient.getQueryData(['course', courseId]);
+
+      // Optimistically update to the new value
+      queryClient.setQueryData(['course', courseId], (oldData: any) => {
+        if (!oldData || !oldData.modules) return oldData;
+
+        const updatedModules = oldData.modules.map((module: any) => ({
+          ...module,
+          lessons: module.lessons?.map((lesson: any) =>
+            lesson.id === lessonId
+              ? { ...lesson, isCompleted: true, progress: 100 }
+              : lesson
+          ) || []
+        }));
+
+        return { ...oldData, modules: updatedModules };
+      });
+
+      // Return a context object with the snapshotted value
+      return { previousCourse };
+    },
+    onError: (err, lessonId, context) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      queryClient.setQueryData(['course', courseId], context?.previousCourse);
+      toast({
+        title: 'Error',
+        description: 'Failed to mark lesson as complete. Please try again.',
+        variant: 'destructive',
+      });
+    },
     onSuccess: () => {
+      // Invalidate and refetch to ensure we have the latest data
       queryClient.invalidateQueries({ queryKey: ['course', courseId] });
       queryClient.invalidateQueries({ queryKey: ['student-progress'] });
       toast({
@@ -349,8 +415,8 @@ const CourseViewer = () => {
     }
   }, [allLessons, selectedLessonId]);
 
-  const handleLessonProgress = (lessonId: string, timeSpent: number) => {
-    updateProgressMutation.mutate({ lessonId, timeSpent });
+  const handleLessonProgress = (lessonId: string, timeSpent: number, progress?: number) => {
+    updateProgressMutation.mutate({ lessonId, timeSpent, progress });
   };
 
   const handleLessonComplete = (lessonId: string) => {

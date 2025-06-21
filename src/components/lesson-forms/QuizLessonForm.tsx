@@ -27,6 +27,11 @@ const QuizLessonForm: React.FC<QuizLessonFormProps> = ({
   const [passingScore, setPassingScore] = useState(70);
   const [timeLimit, setTimeLimit] = useState<number | undefined>();
   const [maxAttempts, setMaxAttempts] = useState<number | undefined>();
+  const [randomizeQuestions, setRandomizeQuestions] = useState(false);
+  const [randomizeOptions, setRandomizeOptions] = useState(false);
+  const [questionsPerAttempt, setQuestionsPerAttempt] = useState<number | undefined>();
+  const [questionBank, setQuestionBank] = useState<QuizQuestion[]>([]);
+  const [immediateFeedback, setImmediateFeedback] = useState(false);
 
   const addQuestion = () => {
     const newQuestion: QuizQuestion = {
@@ -37,14 +42,67 @@ const QuizLessonForm: React.FC<QuizLessonFormProps> = ({
       correctAnswer: '',
       explanation: '',
       points: 1,
-      order: questions.length + 1
+      order: questions.length + 1,
+      maxLength: undefined,
+      minLength: undefined,
+      keywords: undefined,
+      rubric: undefined,
+      caseSensitive: false,
+      allowPartialCredit: false,
+      weight: 1,
+      difficulty: 'medium'
     };
     setQuestions([...questions, newQuestion]);
   };
 
   const updateQuestion = (index: number, field: keyof QuizQuestion, value: any) => {
     const updatedQuestions = [...questions];
-    updatedQuestions[index] = { ...updatedQuestions[index], [field]: value };
+    const currentQuestion = updatedQuestions[index];
+
+    // Handle question type changes by resetting appropriate fields
+    if (field === 'type') {
+      const newQuestion = { ...currentQuestion, [field]: value };
+
+      // Reset fields based on new question type
+      switch (value) {
+        case 'MULTIPLE_CHOICE':
+          newQuestion.options = ['', '', '', ''];
+          newQuestion.correctAnswer = '';
+          break;
+        case 'TRUE_FALSE':
+          newQuestion.options = undefined;
+          newQuestion.correctAnswer = '';
+          break;
+        case 'SHORT_ANSWER':
+          newQuestion.options = undefined;
+          newQuestion.correctAnswer = '';
+          newQuestion.maxLength = undefined;
+          newQuestion.caseSensitive = false;
+          newQuestion.keywords = undefined;
+          break;
+        case 'ESSAY':
+          newQuestion.options = undefined;
+          newQuestion.correctAnswer = '';
+          newQuestion.minLength = undefined;
+          newQuestion.maxLength = undefined;
+          break;
+        case 'MATCHING':
+          newQuestion.options = ['', '', '', ''];
+          newQuestion.correctAnswer = '';
+          break;
+        case 'ORDERING':
+          newQuestion.options = ['', '', ''];
+          newQuestion.correctAnswer = '';
+          break;
+        default:
+          break;
+      }
+
+      updatedQuestions[index] = newQuestion;
+    } else {
+      updatedQuestions[index] = { ...currentQuestion, [field]: value };
+    }
+
     setQuestions(updatedQuestions);
   };
 
@@ -70,10 +128,15 @@ const QuizLessonForm: React.FC<QuizLessonFormProps> = ({
       maxAttempts,
       showCorrectAnswers: true,
       showScoreImmediately: true,
-      isRequired: true
+      isRequired: true,
+      randomizeQuestions,
+      randomizeOptions,
+      questionsPerAttempt,
+      questionBank,
+      immediateFeedback
     };
     setValue('content', JSON.stringify(quizData));
-  }, [questions, passingScore, timeLimit, maxAttempts, setValue]);
+  }, [questions, passingScore, timeLimit, maxAttempts, randomizeQuestions, randomizeOptions, questionsPerAttempt, questionBank, immediateFeedback, setValue]);
 
   return (
     <div className="space-y-6">
@@ -149,6 +212,52 @@ const QuizLessonForm: React.FC<QuizLessonFormProps> = ({
               </p>
             </div>
           </div>
+
+          {/* Randomization Settings */}
+          <div className="space-y-4 pt-4 border-t">
+            <h4 className="font-medium text-sm">Randomization Settings</h4>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={randomizeQuestions}
+                  onCheckedChange={setRandomizeQuestions}
+                />
+                <Label>Randomize Question Order</Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={randomizeOptions}
+                  onCheckedChange={setRandomizeOptions}
+                />
+                <Label>Randomize Answer Options</Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={immediateFeedback}
+                  onCheckedChange={setImmediateFeedback}
+                />
+                <Label>Immediate Feedback</Label>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="questionsPerAttempt">Questions Per Attempt (Optional)</Label>
+              <Input
+                id="questionsPerAttempt"
+                type="number"
+                min="1"
+                value={questionsPerAttempt || ''}
+                onChange={(e) => setQuestionsPerAttempt(e.target.value ? Number(e.target.value) : undefined)}
+                placeholder="Show all questions"
+              />
+              <p className="text-xs text-muted-foreground">
+                If set, only this many questions will be randomly selected from the question bank for each attempt
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -205,6 +314,10 @@ const QuizLessonForm: React.FC<QuizLessonFormProps> = ({
                             <SelectItem value="MULTIPLE_CHOICE">Multiple Choice</SelectItem>
                             <SelectItem value="TRUE_FALSE">True/False</SelectItem>
                             <SelectItem value="FILL_IN_BLANK">Fill in the Blank</SelectItem>
+                            <SelectItem value="SHORT_ANSWER">Short Answer</SelectItem>
+                            <SelectItem value="ESSAY">Essay</SelectItem>
+                            <SelectItem value="MATCHING">Matching</SelectItem>
+                            <SelectItem value="ORDERING">Ordering</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -218,6 +331,48 @@ const QuizLessonForm: React.FC<QuizLessonFormProps> = ({
                           value={question.points}
                           onChange={(e) => updateQuestion(index, 'points', Number(e.target.value))}
                         />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label>Weight</Label>
+                        <Input
+                          type="number"
+                          min="0.1"
+                          max="5"
+                          step="0.1"
+                          value={question.weight || 1}
+                          onChange={(e) => updateQuestion(index, 'weight', Number(e.target.value) || 1)}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Question weight for scoring (default: 1)
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Difficulty</Label>
+                        <Select
+                          value={question.difficulty || 'medium'}
+                          onValueChange={(value) => updateQuestion(index, 'difficulty', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="easy">Easy</SelectItem>
+                            <SelectItem value="medium">Medium</SelectItem>
+                            <SelectItem value="hard">Hard</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="flex items-center space-x-2 pt-6">
+                        <Switch
+                          checked={question.allowPartialCredit || false}
+                          onCheckedChange={(checked) => updateQuestion(index, 'allowPartialCredit', checked)}
+                        />
+                        <Label>Allow Partial Credit</Label>
                       </div>
                     </div>
 
@@ -268,6 +423,137 @@ const QuizLessonForm: React.FC<QuizLessonFormProps> = ({
                             <SelectItem value="False">False</SelectItem>
                           </SelectContent>
                         </Select>
+                      </div>
+                    )}
+
+                    {question.type === 'SHORT_ANSWER' && (
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label>Expected Answer</Label>
+                          <Input
+                            value={question.correctAnswer as string}
+                            onChange={(e) => updateQuestion(index, 'correctAnswer', e.target.value)}
+                            placeholder="Enter the expected answer..."
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Max Length (characters)</Label>
+                            <Input
+                              type="number"
+                              value={question.maxLength || ''}
+                              onChange={(e) => updateQuestion(index, 'maxLength', Number(e.target.value) || undefined)}
+                              placeholder="e.g., 100"
+                            />
+                          </div>
+
+                          <div className="flex items-center space-x-2">
+                            <Switch
+                              checked={question.caseSensitive || false}
+                              onCheckedChange={(checked) => updateQuestion(index, 'caseSensitive', checked)}
+                            />
+                            <Label>Case Sensitive</Label>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>Keywords for Auto-grading (Optional)</Label>
+                          <Input
+                            value={question.keywords?.join(', ') || ''}
+                            onChange={(e) => updateQuestion(index, 'keywords', e.target.value.split(',').map(k => k.trim()).filter(k => k))}
+                            placeholder="Enter keywords separated by commas..."
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            If provided, answers containing all keywords will be marked correct
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {question.type === 'ESSAY' && (
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Min Length (characters)</Label>
+                            <Input
+                              type="number"
+                              value={question.minLength || ''}
+                              onChange={(e) => updateQuestion(index, 'minLength', Number(e.target.value) || undefined)}
+                              placeholder="e.g., 200"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label>Max Length (characters)</Label>
+                            <Input
+                              type="number"
+                              value={question.maxLength || ''}
+                              onChange={(e) => updateQuestion(index, 'maxLength', Number(e.target.value) || undefined)}
+                              placeholder="e.g., 1000"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>Sample Answer (for instructor reference)</Label>
+                          <Textarea
+                            value={question.correctAnswer as string}
+                            onChange={(e) => updateQuestion(index, 'correctAnswer', e.target.value)}
+                            placeholder="Provide a sample answer or key points..."
+                            rows={4}
+                          />
+                        </div>
+
+                        <div className="text-sm text-muted-foreground p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                          <strong>Note:</strong> Essay questions require manual grading by the instructor.
+                        </div>
+                      </div>
+                    )}
+
+                    {(question.type === 'MATCHING' || question.type === 'ORDERING') && (
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label>Items {question.type === 'MATCHING' ? '(pairs)' : '(in correct order)'}</Label>
+                          {question.options?.map((option, optionIndex) => (
+                            <div key={optionIndex} className="flex items-center gap-2">
+                              <span className="text-sm text-muted-foreground w-8">
+                                {question.type === 'MATCHING' ?
+                                  (optionIndex % 2 === 0 ? 'A' : 'B') + Math.floor(optionIndex / 2 + 1) :
+                                  optionIndex + 1
+                                }
+                              </span>
+                              <Input
+                                value={option}
+                                onChange={(e) => updateOption(index, optionIndex, e.target.value)}
+                                placeholder={
+                                  question.type === 'MATCHING' ?
+                                    (optionIndex % 2 === 0 ? 'Left column item' : 'Right column item') :
+                                    `Item ${optionIndex + 1}`
+                                }
+                              />
+                            </div>
+                          ))}
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const newOptions = [...(question.options || []), ''];
+                              if (question.type === 'MATCHING' && newOptions.length % 2 === 1) {
+                                newOptions.push(''); // Add pair
+                              }
+                              updateQuestion(index, 'options', newOptions);
+                            }}
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add {question.type === 'MATCHING' ? 'Pair' : 'Item'}
+                          </Button>
+                        </div>
+
+                        <div className="text-sm text-muted-foreground p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                          <strong>Note:</strong> {question.type === 'MATCHING' ? 'Matching' : 'Ordering'} questions require manual grading by the instructor.
+                        </div>
                       </div>
                     )}
 

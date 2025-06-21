@@ -8,7 +8,9 @@ import {
   updateQuiz,
   deleteQuiz,
   getQuizStats,
+  getStudentProgress,
   startQuizAttempt,
+  validateQuizAttempt,
   getQuizAttempt
 } from '../controllers/quizController';
 import { authenticate, requireInstructor, authorize } from '../middleware/auth';
@@ -250,6 +252,35 @@ router.post('/:id/start', authenticate, startQuizAttempt);
 
 /**
  * @swagger
+ * /api/quizzes/{id}/validate/{attemptId}:
+ *   get:
+ *     summary: Validate quiz attempt (check if still valid/not expired)
+ *     tags: [Quizzes]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: attemptId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Quiz attempt validation completed
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Quiz or attempt not found
+ */
+router.get('/:id/validate/:attemptId', authenticate, validateQuizAttempt);
+
+/**
+ * @swagger
  * /api/quizzes/{id}/submit:
  *   post:
  *     summary: Submit quiz attempt
@@ -341,6 +372,34 @@ router.get('/attempts/my', authenticate, getUserQuizAttempts);
  *         description: Insufficient permissions
  */
 router.get('/:id/stats', authenticate, authorize(UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN), getQuizStats);
+
+/**
+ * @swagger
+ * /api/quizzes/{id}/progress:
+ *   get:
+ *     summary: Get student progress analytics
+ *     tags: [Quizzes]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: studentId
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Student progress retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Insufficient permissions
+ */
+router.get('/:id/progress', authenticate, authorize(UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN), getStudentProgress);
 
 /**
  * @swagger

@@ -5,7 +5,9 @@ export enum QuestionType {
   TRUE_FALSE = 'TRUE_FALSE',
   FILL_IN_BLANK = 'FILL_IN_BLANK',
   MATCHING = 'MATCHING',
-  ORDERING = 'ORDERING'
+  ORDERING = 'ORDERING',
+  SHORT_ANSWER = 'SHORT_ANSWER',
+  ESSAY = 'ESSAY'
 }
 
 export interface IQuizQuestion {
@@ -17,6 +19,20 @@ export interface IQuizQuestion {
   explanation?: string;
   points: number;
   order: number;
+
+  // Additional fields for new question types
+  maxLength?: number; // For short answer and essay questions
+  minLength?: number; // For essay questions
+  keywords?: string[]; // For short answer auto-grading
+  rubric?: {
+    criteria: string;
+    points: number;
+    description: string;
+  }[]; // For essay questions
+  caseSensitive?: boolean; // For short answer questions
+  allowPartialCredit?: boolean; // For various question types
+  weight?: number; // Question weight for scoring (default: 1)
+  difficulty?: 'easy' | 'medium' | 'hard'; // Question difficulty level
 }
 
 export interface IQuiz extends mongoose.Document {
@@ -34,6 +50,13 @@ export interface IQuiz extends mongoose.Document {
   isRequired: boolean; // Must pass to complete lesson
   order: number;
   isPublished: boolean;
+
+  // Question randomization settings
+  randomizeQuestions: boolean; // Whether to randomize question order
+  randomizeOptions: boolean; // Whether to randomize option order for multiple choice
+  questionsPerAttempt?: number; // Number of questions to show per attempt (from question bank)
+  questionBank: IQuizQuestion[]; // Pool of questions to draw from
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -78,6 +101,58 @@ const quizQuestionSchema = new Schema({
     type: Number,
     required: true,
     min: [1, 'Order must be at least 1']
+  },
+
+  // Additional fields for new question types
+  maxLength: {
+    type: Number,
+    min: [1, 'Max length must be at least 1']
+  },
+  minLength: {
+    type: Number,
+    min: [1, 'Min length must be at least 1']
+  },
+  keywords: [{
+    type: String,
+    trim: true,
+    maxlength: [100, 'Keyword cannot exceed 100 characters']
+  }],
+  rubric: [{
+    criteria: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: [200, 'Criteria cannot exceed 200 characters']
+    },
+    points: {
+      type: Number,
+      required: true,
+      min: [1, 'Points must be at least 1']
+    },
+    description: {
+      type: String,
+      trim: true,
+      maxlength: [500, 'Description cannot exceed 500 characters']
+    }
+  }],
+  caseSensitive: {
+    type: Boolean,
+    default: false
+  },
+  allowPartialCredit: {
+    type: Boolean,
+    default: false
+  },
+  weight: {
+    type: Number,
+    default: 1,
+    min: [0.1, 'Weight must be at least 0.1'],
+    max: [5, 'Weight cannot exceed 5']
+  },
+  difficulty: {
+    type: String,
+    enum: ['easy', 'medium', 'hard'],
+    default: 'medium'
   }
 }, { _id: false });
 
@@ -139,7 +214,22 @@ const quizSchema = new Schema<IQuiz>({
   isPublished: {
     type: Boolean,
     default: false
-  }
+  },
+
+  // Question randomization settings
+  randomizeQuestions: {
+    type: Boolean,
+    default: false
+  },
+  randomizeOptions: {
+    type: Boolean,
+    default: false
+  },
+  questionsPerAttempt: {
+    type: Number,
+    min: [1, 'Questions per attempt must be at least 1']
+  },
+  questionBank: [quizQuestionSchema]
 }, {
   timestamps: true,
   toJSON: {

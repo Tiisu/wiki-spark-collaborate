@@ -95,7 +95,7 @@ class CourseService {
       }
 
       // Get modules with lessons
-      const modules = await Module.find({ 
+      const modules = await Module.find({
         course: courseId,
         ...(includeUnpublished ? {} : { isPublished: true })
       })
@@ -104,7 +104,7 @@ class CourseService {
 
       const modulesWithLessons = await Promise.all(
         modules.map(async (module) => {
-          const lessons = await Lesson.find({ 
+          const lessons = await Lesson.find({
             module: module._id,
             ...(includeUnpublished ? {} : { isPublished: true })
           })
@@ -118,6 +118,111 @@ class CourseService {
       return { ...course, modules: modulesWithLessons } as ICourse;
     } catch (error) {
       logger.error('Failed to get course by ID:', error);
+      throw error;
+    }
+  }
+
+  // Get course by ID with user progress included
+  async getCourseByIdWithProgress(courseId: string, userId?: string, includeUnpublished = false): Promise<ICourse | null> {
+    try {
+      const query: any = { _id: courseId };
+      if (!includeUnpublished) {
+        query.isPublished = true;
+        query.status = CourseStatus.PUBLISHED;
+      }
+
+      const course = await Course.findOne(query)
+        .populate('instructor', 'firstName lastName username bio')
+        .lean();
+
+      if (!course) {
+        return null;
+      }
+
+      // Get modules with lessons
+      const modules = await Module.find({
+        course: courseId,
+        ...(includeUnpublished ? {} : { isPublished: true })
+      })
+        .sort({ order: 1 })
+        .lean();
+
+      // Get user progress if userId is provided
+      let userProgress: Map<string, IProgress> = new Map();
+      if (userId) {
+        const progressRecords = await Progress.find({
+          user: userId,
+          course: courseId
+        }).lean();
+
+        progressRecords.forEach(progress => {
+          userProgress.set(progress.lesson.toString(), progress);
+        });
+      }
+
+      const modulesWithLessons = await Promise.all(
+        modules.map(async (module) => {
+          const lessons = await Lesson.find({
+            module: module._id,
+            ...(includeUnpublished ? {} : { isPublished: true })
+          })
+            .sort({ order: 1 })
+            .lean();
+
+          // Add progress information to each lesson
+          const lessonsWithProgress = lessons.map(lesson => {
+            const progress = userProgress.get(lesson._id.toString());
+            return {
+              ...lesson,
+              isCompleted: progress?.status === ProgressStatus.COMPLETED || progress?.completionPercentage === 100,
+              progress: progress ? {
+                status: progress.status,
+                completionPercentage: progress.completionPercentage,
+                timeSpent: progress.timeSpent,
+                lastPosition: progress.lastPosition,
+                completedAt: progress.completedAt
+              } : null
+            };
+          });
+
+          return { ...module, lessons: lessonsWithProgress };
+        })
+      );
+
+      // Calculate course-level progress if userId is provided
+      let courseProgress = {
+        totalLessons: 0,
+        completedLessons: 0,
+        progress: 0
+      };
+
+      if (userId) {
+        // Count total published lessons in the course
+        courseProgress.totalLessons = await Lesson.countDocuments({
+          course: courseId,
+          isPublished: true
+        });
+
+        // Count completed lessons for this user
+        courseProgress.completedLessons = await Progress.countDocuments({
+          user: userId,
+          course: courseId,
+          status: ProgressStatus.COMPLETED
+        });
+
+        // Calculate progress percentage
+        courseProgress.progress = courseProgress.totalLessons > 0
+          ? Math.round((courseProgress.completedLessons / courseProgress.totalLessons) * 100)
+          : 0;
+      }
+
+      return {
+        ...course,
+        modules: modulesWithLessons,
+        ...courseProgress
+      } as ICourse;
+    } catch (error) {
+      logger.error('Failed to get course by ID with progress:', error);
       throw error;
     }
   }

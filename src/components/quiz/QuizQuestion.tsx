@@ -18,11 +18,24 @@ import { cn } from '@/lib/utils';
 export interface QuizQuestion {
   id: string;
   question: string;
-  type: 'multiple_choice' | 'true_false' | 'short_answer' | 'multiple_select';
+  type: 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'FILL_IN_BLANK' | 'MATCHING' | 'ORDERING' | 'SHORT_ANSWER' | 'ESSAY';
   options?: string[];
   correctAnswer: string | string[];
   explanation?: string;
   points: number;
+  order: number;
+
+  // Additional fields for new question types
+  maxLength?: number;
+  minLength?: number;
+  keywords?: string[];
+  rubric?: {
+    criteria: string;
+    points: number;
+    description: string;
+  }[];
+  caseSensitive?: boolean;
+  allowPartialCredit?: boolean;
 }
 
 interface QuizQuestionProps {
@@ -76,7 +89,7 @@ export function QuizQuestion({
 
   const renderQuestionContent = () => {
     switch (question.type) {
-      case 'multiple_choice':
+      case 'MULTIPLE_CHOICE':
         return (
           <RadioGroup
             value={typeof localAnswer === 'string' ? localAnswer : ''}
@@ -114,7 +127,7 @@ export function QuizQuestion({
           </RadioGroup>
         );
 
-      case 'multiple_select':
+      case 'FILL_IN_BLANK':
         return (
           <div className="space-y-3">
             {question.options?.map((option, index) => (
@@ -146,7 +159,7 @@ export function QuizQuestion({
           </div>
         );
 
-      case 'true_false':
+      case 'TRUE_FALSE':
         return (
           <RadioGroup
             value={typeof localAnswer === 'string' ? localAnswer : ''}
@@ -180,32 +193,150 @@ export function QuizQuestion({
           </RadioGroup>
         );
 
-      case 'short_answer':
+      case 'SHORT_ANSWER':
         return (
           <div className="space-y-3">
-            <Textarea
+            <Input
               value={typeof localAnswer === 'string' ? localAnswer : ''}
               onChange={(e) => handleShortAnswerChange(e.target.value)}
               placeholder="Type your answer here..."
               disabled={showResult}
+              maxLength={question.maxLength}
               className={cn(
                 showResult && {
                   "border-green-500": isCorrect,
                   "border-red-500": !isCorrect
                 }
               )}
-              rows={3}
             />
+            {question.maxLength && (
+              <div className="text-xs text-muted-foreground">
+                {typeof localAnswer === 'string' ? localAnswer.length : 0} / {question.maxLength} characters
+              </div>
+            )}
             {showResult && (
               <div className="text-sm text-muted-foreground">
-                <strong>Correct answer:</strong> {question.correctAnswer}
+                <strong>Expected answer:</strong> {Array.isArray(question.correctAnswer) ? question.correctAnswer.join(', ') : question.correctAnswer}
+                {question.keywords && question.keywords.length > 0 && (
+                  <div className="mt-1">
+                    <strong>Key terms:</strong> {question.keywords.join(', ')}
+                  </div>
+                )}
               </div>
             )}
           </div>
         );
 
+      case 'ESSAY':
+        return (
+          <div className="space-y-3">
+            <Textarea
+              value={typeof localAnswer === 'string' ? localAnswer : ''}
+              onChange={(e) => handleShortAnswerChange(e.target.value)}
+              placeholder="Write your essay response here..."
+              disabled={showResult}
+              maxLength={question.maxLength}
+              className={cn(
+                "min-h-[200px]",
+                showResult && {
+                  "border-green-500": isCorrect,
+                  "border-red-500": !isCorrect
+                }
+              )}
+              rows={8}
+            />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <div>
+                {question.minLength && (
+                  <span>Minimum {question.minLength} characters required</span>
+                )}
+              </div>
+              <div>
+                {typeof localAnswer === 'string' ? localAnswer.length : 0}
+                {question.maxLength && ` / ${question.maxLength}`} characters
+              </div>
+            </div>
+            {showResult && question.rubric && (
+              <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-900/20 rounded-lg border">
+                <h4 className="font-medium mb-2">Grading Rubric:</h4>
+                <div className="space-y-2">
+                  {question.rubric.map((criterion, index) => (
+                    <div key={index} className="text-sm">
+                      <div className="flex justify-between">
+                        <span className="font-medium">{criterion.criteria}</span>
+                        <span>{criterion.points} points</span>
+                      </div>
+                      {criterion.description && (
+                        <p className="text-muted-foreground mt-1">{criterion.description}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+
+      case 'MATCHING':
+        // For matching questions, options should be pairs
+        const pairs = question.options || [];
+        const leftItems = pairs.filter((_, index) => index % 2 === 0);
+        const rightItems = pairs.filter((_, index) => index % 2 === 1);
+
+        return (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">Match the items from the left column with the correct items from the right column.</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <h4 className="font-medium">Column A</h4>
+                {leftItems.map((item, index) => (
+                  <div key={index} className="p-2 border rounded bg-gray-50 dark:bg-gray-900">
+                    {item}
+                  </div>
+                ))}
+              </div>
+              <div className="space-y-2">
+                <h4 className="font-medium">Column B</h4>
+                {rightItems.map((item, index) => (
+                  <div key={index} className="p-2 border rounded bg-gray-50 dark:bg-gray-900">
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              Note: Matching questions require manual grading by the instructor.
+            </div>
+          </div>
+        );
+
+      case 'ORDERING':
+        return (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">Arrange the following items in the correct order.</p>
+            <div className="space-y-2">
+              {question.options?.map((item, index) => (
+                <div key={index} className="flex items-center space-x-2 p-2 border rounded">
+                  <span className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-sm font-medium">
+                    {index + 1}
+                  </span>
+                  <span>{item}</span>
+                </div>
+              ))}
+            </div>
+            <div className="text-sm text-muted-foreground">
+              Note: Ordering questions require manual grading by the instructor.
+            </div>
+          </div>
+        );
+
       default:
-        return null;
+        return (
+          <div className="text-center text-muted-foreground py-8">
+            <AlertCircle className="h-8 w-8 mx-auto mb-2" />
+            <p>Unsupported question type: {question.type}</p>
+          </div>
+        );
     }
   };
 

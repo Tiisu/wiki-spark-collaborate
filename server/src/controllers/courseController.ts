@@ -36,9 +36,14 @@ export const getCourses = catchAsync(async (req: Request, res: Response) => {
 });
 
 // Get course by ID
-export const getCourseById = catchAsync(async (req: Request, res: Response) => {
+export const getCourseById = catchAsync(async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
-  const course = await courseService.getCourseById(id);
+
+  // Include user progress if user is authenticated
+  const userId = req.user?._id;
+  const course = userId
+    ? await courseService.getCourseByIdWithProgress(id, userId)
+    : await courseService.getCourseById(id);
 
   if (!course) {
     throw new AppError('Course not found', 404);
@@ -303,9 +308,9 @@ export const getCourseWithProgress = catchAsync(async (req: AuthRequest, res: Re
   }
 
   const { id } = req.params;
-  
-  // Get course
-  const course = await courseService.getCourseById(id);
+
+  // Get course with progress
+  const course = await courseService.getCourseByIdWithProgress(id, req.user._id);
   if (!course) {
     throw new AppError('Course not found', 404);
   }
@@ -321,7 +326,7 @@ export const getCourseWithProgress = catchAsync(async (req: AuthRequest, res: Re
   res.status(200).json({
     success: true,
     message: 'Course with progress retrieved successfully',
-    data: { 
+    data: {
       course,
       enrollment
     }
