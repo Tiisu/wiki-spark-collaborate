@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { CreateLessonData, LessonData, LessonType } from '@/lib/api';
+import { cn } from '@/lib/utils';
 
 // Import type-specific form components
 import TextLessonForm from '@/components/lesson-forms/TextLessonForm';

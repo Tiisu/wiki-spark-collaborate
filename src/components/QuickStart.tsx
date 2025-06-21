@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Play, CheckCircle, ArrowRight } from 'lucide-react';
@@ -66,10 +67,13 @@ const QuickStart = () => {
           </div>
           
           <div className="text-center">
-            <Button size="lg" className="px-8">
-              <Play className="mr-2 h-5 w-5" />
-              Start Your Journey
-            </Button>
+            <Link to="/register">
+              <Button size="lg" className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white px-8 py-4 text-lg shadow-lg hover:shadow-xl transition-all">
+                <Play className="mr-2 h-5 w-5" />
+                Start Your Journey Free
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
           </div>
         </div>
       </div>

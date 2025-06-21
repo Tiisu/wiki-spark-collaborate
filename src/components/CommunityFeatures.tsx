@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Users, MessageCircle, Zap, Globe, ArrowRight, Heart } from 'lucide-react';
@@ -78,9 +79,11 @@ const CommunityFeatures = () => {
         </div>
         
         <div className="text-center">
-          <Button size="lg" className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white px-8">
-            Join the Community <ArrowRight className="ml-2 h-5 w-5" />
-          </Button>
+          <Link to="/register">
+            <Button size="lg" className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white px-8">
+              Join the Community <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+          </Link>
         </div>
       </div>
     </section>

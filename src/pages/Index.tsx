@@ -2,10 +2,13 @@
 import React from 'react';
 import Header from '../components/Header';
 import Hero from '../components/Hero';
-import LearningPaths from '../components/LearningPaths';
+import FeaturedCourses from '../components/LearningPaths';
+import ImageSection from '../components/ImageSection';
+import WikipediaShowcase from '../components/WikipediaShowcase';
 import CommunityFeatures from '../components/CommunityFeatures';
+import TestimonialsSection from '../components/TestimonialsSection';
 import QuickStart from '../components/QuickStart';
-import UpcomingEvents from '../components/UpcomingEvents';
+import FinalCTA from '../components/FinalCTA';
 import Footer from '../components/Footer';
 
 const Index = () => {
@@ -14,10 +17,13 @@ const Index = () => {
       <Header />
       <main>
         <Hero />
-        <LearningPaths />
+        <FeaturedCourses />
+        <ImageSection />
+        <WikipediaShowcase />
         <CommunityFeatures />
+        <TestimonialsSection />
         <QuickStart />
-        <UpcomingEvents />
+        <FinalCTA />
       </main>
       <Footer />
     </div>
