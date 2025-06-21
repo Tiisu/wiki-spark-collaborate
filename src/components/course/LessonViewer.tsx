@@ -366,6 +366,7 @@ export function LessonViewer({
           </Card>
 
           <AssignmentSubmission
+            lessonId={lesson.id}
             title={lesson.title}
             description="Complete this assignment to demonstrate your understanding of the lesson material."
             dueDate={lesson.dueDate}

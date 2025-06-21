@@ -430,6 +430,24 @@ class CourseService {
     }
   }
 
+  // Update course lesson count (called when lessons are added/removed)
+  async updateCourseLessonCount(courseId: string): Promise<void> {
+    try {
+      const totalLessons = await Lesson.countDocuments({ course: courseId });
+      const totalModules = await Module.countDocuments({ course: courseId });
+
+      await Course.findByIdAndUpdate(courseId, {
+        totalLessons,
+        totalModules
+      });
+
+      logger.info(`Course ${courseId} lesson count updated: ${totalLessons} lessons, ${totalModules} modules`);
+    } catch (error) {
+      logger.error('Failed to update course lesson count:', error);
+      throw error;
+    }
+  }
+
   // Update overall enrollment progress
   private async updateEnrollmentProgress(userId: string, courseId: string): Promise<void> {
     try {

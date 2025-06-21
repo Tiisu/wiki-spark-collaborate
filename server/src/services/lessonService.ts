@@ -7,6 +7,24 @@ import { CreateLessonRequestBody, UpdateLessonRequestBody } from '../types';
 import logger from '../utils/logger';
 
 export class LessonService {
+  // Update course lesson count (utility function to avoid circular dependency)
+  private async updateCourseLessonCount(courseId: string): Promise<void> {
+    try {
+      const totalLessons = await Lesson.countDocuments({ course: courseId });
+      const totalModules = await Module.countDocuments({ course: courseId });
+
+      await Course.findByIdAndUpdate(courseId, {
+        totalLessons,
+        totalModules
+      });
+
+      logger.info(`Course ${courseId} lesson count updated: ${totalLessons} lessons, ${totalModules} modules`);
+    } catch (error) {
+      logger.error('Failed to update course lesson count:', error);
+      throw error;
+    }
+  }
+
   // Get lessons for a module
   async getLessonsByModule(moduleId: string): Promise<ILesson[]> {
     try {
@@ -68,10 +86,11 @@ export class LessonService {
 
       await lesson.save();
 
-      // Update module lesson count and duration
+      // Update module lesson count and duration, and course lesson count
       await Promise.all([
         moduleService.updateLessonCount(moduleId),
-        moduleService.updateModuleDuration(moduleId)
+        moduleService.updateModuleDuration(moduleId),
+        this.updateCourseLessonCount(courseId)
       ]);
 
       logger.info(`Lesson created: ${lesson.title} in module ${moduleId}`);
@@ -153,10 +172,11 @@ export class LessonService {
       });
       
       if (lesson) {
-        // Update module lesson count and duration
+        // Update module lesson count and duration, and course lesson count
         await Promise.all([
           moduleService.updateLessonCount(moduleId),
-          moduleService.updateModuleDuration(moduleId)
+          moduleService.updateModuleDuration(moduleId),
+          this.updateCourseLessonCount(courseId)
         ]);
 
         logger.info(`Lesson deleted: ${lesson.title}`);

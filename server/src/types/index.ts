@@ -123,6 +123,36 @@ export interface CreateLessonRequestBody {
     type: string;
   }>;
   isFree?: boolean;
+
+  // Wikipedia-specific fields
+  wikipediaExercise?: {
+    articleTitle?: string;
+    initialContent?: string;
+    targetContent?: string;
+    instructions: string;
+    editingMode: 'sandbox' | 'guided' | 'live';
+    allowedActions: string[];
+    successCriteria: Array<{
+      type: 'contains' | 'format' | 'structure' | 'links' | 'citations';
+      description: string;
+      required: boolean;
+    }>;
+  };
+
+  // Interactive elements
+  interactiveElements?: Array<{
+    type: 'tooltip' | 'highlight' | 'popup' | 'guide';
+    trigger: string;
+    content: string;
+    position?: string;
+  }>;
+
+  // Assessment criteria
+  assessmentCriteria?: Array<{
+    criterion: string;
+    weight: number;
+    description: string;
+  }>;
 }
 
 export interface UpdateLessonRequestBody {
@@ -140,6 +170,36 @@ export interface UpdateLessonRequestBody {
   }>;
   isPublished?: boolean;
   isFree?: boolean;
+
+  // Wikipedia-specific fields
+  wikipediaExercise?: {
+    articleTitle?: string;
+    initialContent?: string;
+    targetContent?: string;
+    instructions: string;
+    editingMode: 'sandbox' | 'guided' | 'live';
+    allowedActions: string[];
+    successCriteria: Array<{
+      type: 'contains' | 'format' | 'structure' | 'links' | 'citations';
+      description: string;
+      required: boolean;
+    }>;
+  };
+
+  // Interactive elements
+  interactiveElements?: Array<{
+    type: 'tooltip' | 'highlight' | 'popup' | 'guide';
+    trigger: string;
+    content: string;
+    position?: string;
+  }>;
+
+  // Assessment criteria
+  assessmentCriteria?: Array<{
+    criterion: string;
+    weight: number;
+    description: string;
+  }>;
 }
 
 // Progress request body

@@ -57,6 +57,41 @@ const lessonSchema = z.object({
     weight: z.number(),
     description: z.string()
   })).optional()
+}).refine((data) => {
+  // Custom validation for quiz lessons
+  if (data.type === 'QUIZ') {
+    try {
+      const quizData = JSON.parse(data.content);
+      if (!quizData.questions || quizData.questions.length === 0) {
+        return false;
+      }
+
+      // Validate each question has required fields
+      for (let i = 0; i < quizData.questions.length; i++) {
+        const question = quizData.questions[i];
+        if (!question.question || question.question.trim() === '') {
+          return false;
+        }
+        if (!question.correctAnswer || question.correctAnswer.trim() === '') {
+          return false;
+        }
+        // For multiple choice, ensure the correct answer is one of the options
+        if (question.type === 'MULTIPLE_CHOICE') {
+          if (!question.options || !question.options.includes(question.correctAnswer)) {
+            return false;
+          }
+        }
+      }
+
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  return true;
+}, {
+  message: 'All quiz questions must have question text and correct answers',
+  path: ['content']
 });
 
 interface LessonFormProps {
@@ -172,7 +207,27 @@ const LessonForm: React.FC<LessonFormProps> = ({
 
   const selectedType = watch('type');
   const orderValue = watch('order');
+  const contentValue = watch('content');
   const isOrderConflict = !isEditing && existingOrders.includes(orderValue);
+
+  // Check if quiz is valid for submission
+  const isQuizValid = React.useMemo(() => {
+    if (selectedType !== 'QUIZ') return true;
+
+    try {
+      const quizData = JSON.parse(contentValue || '{}');
+      if (!quizData.questions || quizData.questions.length === 0) {
+        return false;
+      }
+
+      return quizData.questions.every((q: any) =>
+        q.question && q.question.trim() !== '' &&
+        q.correctAnswer && q.correctAnswer.trim() !== ''
+      );
+    } catch {
+      return false;
+    }
+  }, [selectedType, contentValue]);
 
   // Get the selected lesson type info
   const selectedTypeInfo = lessonTypes.find(type => type.value === selectedType);
@@ -304,7 +359,7 @@ const LessonForm: React.FC<LessonFormProps> = ({
             </Button>
             <Button
               type="submit"
-              disabled={isLoading || isOrderConflict}
+              disabled={isLoading || isOrderConflict || !isQuizValid}
               className="min-w-[120px]"
             >
               {isLoading ? (
@@ -316,6 +371,11 @@ const LessonForm: React.FC<LessonFormProps> = ({
                 isEditing ? 'Update Lesson' : 'Create Lesson'
               )}
             </Button>
+            {selectedType === 'QUIZ' && !isQuizValid && (
+              <p className="text-sm text-amber-600 mt-2">
+                ⚠️ Please complete all quiz questions before creating the lesson
+              </p>
+            )}
           </div>
         </form>
       </DialogContent>

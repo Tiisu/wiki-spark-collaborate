@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import { assignmentApi } from '@/lib/api';
 import {
   FileText,
   Upload,
@@ -12,10 +14,12 @@ import {
   CheckCircle,
   Clock,
   AlertCircle,
-  Paperclip
+  Paperclip,
+  Save
 } from 'lucide-react';
 
 interface AssignmentSubmissionProps {
+  lessonId: string;
   title: string;
   description: string;
   dueDate?: string;
@@ -32,16 +36,40 @@ interface AssignmentSubmission {
   feedback?: string;
 }
 
-export function AssignmentSubmission({ 
-  title, 
-  description, 
-  dueDate, 
-  onSubmit, 
-  existingSubmission 
+export function AssignmentSubmission({
+  lessonId,
+  title,
+  description,
+  dueDate,
+  onSubmit,
+  existingSubmission
 }: AssignmentSubmissionProps) {
   const [submissionText, setSubmissionText] = useState(existingSubmission?.text || '');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [assignment, setAssignment] = useState<any>(existingSubmission);
+  const { toast } = useToast();
+
+  // Load existing assignment submission
+  useEffect(() => {
+    const loadAssignment = async () => {
+      try {
+        const response = await assignmentApi.getAssignmentSubmission(lessonId);
+        if (response.assignment) {
+          setAssignment(response.assignment);
+          setSubmissionText(response.assignment.text || '');
+        }
+      } catch (error) {
+        // No existing assignment, which is fine
+        console.log('No existing assignment found');
+      }
+    };
+
+    if (lessonId && !existingSubmission) {
+      loadAssignment();
+    }
+  }, [lessonId, existingSubmission]);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
@@ -54,22 +82,94 @@ export function AssignmentSubmission({
 
   const handleSubmit = async () => {
     if (!submissionText.trim() && selectedFiles.length === 0) {
+      toast({
+        title: 'Error',
+        description: 'Please provide assignment text or upload files before submitting.',
+        variant: 'destructive',
+      });
       return;
     }
 
     setIsSubmitting(true);
-    
-    const submission: AssignmentSubmission = {
-      text: submissionText,
-      files: selectedFiles,
-      submittedAt: new Date(),
-      status: 'submitted'
-    };
 
     try {
+      const submissionData = {
+        text: submissionText,
+        files: selectedFiles.map(file => ({
+          filename: file.name,
+          originalName: file.name,
+          mimetype: file.type,
+          size: file.size,
+          path: '' // This would be handled by file upload service
+        }))
+      };
+
+      const response = await assignmentApi.submitAssignment(lessonId, submissionData);
+      setAssignment(response.assignment);
+
+      const submission: AssignmentSubmission = {
+        text: submissionText,
+        files: selectedFiles,
+        submittedAt: new Date(),
+        status: 'submitted'
+      };
+
       await onSubmit(submission);
+
+      toast({
+        title: 'Success',
+        description: 'Assignment submitted successfully!',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to submit assignment. Please try again.',
+        variant: 'destructive',
+      });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleSaveDraft = async () => {
+    if (!submissionText.trim()) {
+      toast({
+        title: 'Error',
+        description: 'Please provide assignment text before saving draft.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSavingDraft(true);
+
+    try {
+      const submissionData = {
+        text: submissionText,
+        files: selectedFiles.map(file => ({
+          filename: file.name,
+          originalName: file.name,
+          mimetype: file.type,
+          size: file.size,
+          path: '' // This would be handled by file upload service
+        }))
+      };
+
+      const response = await assignmentApi.saveDraft(lessonId, submissionData);
+      setAssignment(response.assignment);
+
+      toast({
+        title: 'Success',
+        description: 'Assignment draft saved successfully!',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to save draft. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSavingDraft(false);
     }
   };
 
@@ -82,7 +182,9 @@ export function AssignmentSubmission({
   };
 
   const isOverdue = dueDate && new Date() > new Date(dueDate);
-  const canSubmit = !existingSubmission || existingSubmission.status === 'draft';
+  const canSubmit = !assignment || assignment.status === 'draft';
+  const isSubmitted = assignment && assignment.status === 'submitted';
+  const isGraded = assignment && assignment.status === 'graded';
 
   return (
     <div className="space-y-6">
@@ -98,15 +200,15 @@ export function AssignmentSubmission({
               <p className="text-muted-foreground mt-2">{description}</p>
             </div>
             <div className="flex flex-col items-end space-y-2">
-              {existingSubmission && (
+              {assignment && (
                 <Badge variant={
-                  existingSubmission.status === 'graded' ? 'default' :
-                  existingSubmission.status === 'submitted' ? 'secondary' : 'outline'
+                  assignment.status === 'graded' ? 'default' :
+                  assignment.status === 'submitted' ? 'secondary' : 'outline'
                 }>
-                  {existingSubmission.status === 'graded' && <CheckCircle className="h-3 w-3 mr-1" />}
-                  {existingSubmission.status === 'submitted' && <Clock className="h-3 w-3 mr-1" />}
-                  {existingSubmission.status === 'draft' && <FileText className="h-3 w-3 mr-1" />}
-                  {existingSubmission.status.charAt(0).toUpperCase() + existingSubmission.status.slice(1)}
+                  {assignment.status === 'graded' && <CheckCircle className="h-3 w-3 mr-1" />}
+                  {assignment.status === 'submitted' && <Clock className="h-3 w-3 mr-1" />}
+                  {assignment.status === 'draft' && <FileText className="h-3 w-3 mr-1" />}
+                  {assignment.status.charAt(0).toUpperCase() + assignment.status.slice(1)}
                 </Badge>
               )}
               {dueDate && (
@@ -212,9 +314,27 @@ export function AssignmentSubmission({
               </div>
             )}
 
-            {/* Submit Button */}
-            <div className="flex justify-end pt-4">
-              <Button 
+            {/* Action Buttons */}
+            <div className="flex justify-between pt-4">
+              <Button
+                variant="outline"
+                onClick={handleSaveDraft}
+                disabled={isSavingDraft || !submissionText.trim()}
+              >
+                {isSavingDraft ? (
+                  <>
+                    <Clock className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    Save Draft
+                  </>
+                )}
+              </Button>
+
+              <Button
                 onClick={handleSubmit}
                 disabled={isSubmitting || (!submissionText.trim() && selectedFiles.length === 0)}
                 className="bg-blue-600 hover:bg-blue-700"
@@ -237,51 +357,51 @@ export function AssignmentSubmission({
       )}
 
       {/* Existing Submission Display */}
-      {existingSubmission && existingSubmission.status !== 'draft' && (
+      {assignment && assignment.status !== 'draft' && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Your Submission</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Submitted on {existingSubmission.submittedAt.toLocaleDateString()}
+              Submitted on {assignment.submittedAt ? new Date(assignment.submittedAt).toLocaleDateString() : 'Unknown'}
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
-            {existingSubmission.text && (
+            {assignment.text && (
               <div>
                 <Label>Written Response</Label>
                 <div className="mt-2 p-4 bg-muted rounded-lg">
-                  <p className="whitespace-pre-wrap">{existingSubmission.text}</p>
+                  <p className="whitespace-pre-wrap">{assignment.text}</p>
                 </div>
               </div>
             )}
 
-            {existingSubmission.files.length > 0 && (
+            {assignment.files && assignment.files.length > 0 && (
               <div>
                 <Label>Submitted Files</Label>
                 <div className="mt-2 space-y-2">
-                  {existingSubmission.files.map((file, index) => (
+                  {assignment.files.map((file: any, index: number) => (
                     <div key={index} className="flex items-center space-x-2 p-2 bg-muted rounded">
                       <Paperclip className="h-4 w-4" />
-                      <span className="text-sm">{file.name}</span>
+                      <span className="text-sm">{file.originalName || file.filename}</span>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {existingSubmission.status === 'graded' && (
+            {assignment.status === 'graded' && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label>Grade</Label>
                   <Badge variant="default" className="bg-green-600">
-                    {existingSubmission.grade}/100
+                    {assignment.grade}/100
                   </Badge>
                 </div>
-                {existingSubmission.feedback && (
+                {assignment.feedback && (
                   <div>
                     <Label>Instructor Feedback</Label>
                     <div className="mt-2 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                      <p className="whitespace-pre-wrap">{existingSubmission.feedback}</p>
+                      <p className="whitespace-pre-wrap">{assignment.feedback}</p>
                     </div>
                   </div>
                 )}

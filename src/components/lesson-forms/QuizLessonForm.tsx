@@ -114,7 +114,18 @@ const QuizLessonForm: React.FC<QuizLessonFormProps> = ({
   const updateOption = (questionIndex: number, optionIndex: number, value: string) => {
     const updatedQuestions = [...questions];
     if (updatedQuestions[questionIndex].options) {
+      const oldValue = updatedQuestions[questionIndex].options![optionIndex];
       updatedQuestions[questionIndex].options![optionIndex] = value;
+
+      // If the old value was the correct answer and it's being changed to empty, clear the correct answer
+      if (updatedQuestions[questionIndex].correctAnswer === oldValue && value.trim() === '') {
+        updatedQuestions[questionIndex].correctAnswer = '';
+      }
+      // If the old value was the correct answer and it's being changed to something else, update the correct answer
+      else if (updatedQuestions[questionIndex].correctAnswer === oldValue && value.trim() !== '') {
+        updatedQuestions[questionIndex].correctAnswer = value;
+      }
+
       setQuestions(updatedQuestions);
     }
   };
@@ -135,7 +146,31 @@ const QuizLessonForm: React.FC<QuizLessonFormProps> = ({
       questionBank,
       immediateFeedback
     };
-    setValue('content', JSON.stringify(quizData));
+
+    // Always set content, even if empty, to ensure form validation passes
+    const contentString = JSON.stringify(quizData);
+    const currentContent = watch('content');
+
+    // Only update if content has actually changed to prevent infinite loops
+    if (currentContent !== contentString) {
+      setValue('content', contentString);
+    }
+
+    // Debug logging (only when questions count changes to avoid spam)
+    if (questions.length !== (window as any).lastQuestionCount) {
+      console.log('Quiz form updated:', {
+        questionCount: questions.length,
+        contentLength: contentString.length,
+        hasValidQuestions: questions.length > 0 && questions.every(q => q.question && q.correctAnswer)
+      });
+      (window as any).lastQuestionCount = questions.length;
+    }
+
+    // Also set a default duration for quiz lessons if not set
+    const currentDuration = watch('duration');
+    if (!currentDuration || currentDuration === 0) {
+      setValue('duration', Math.max(10, questions.length * 2)); // 2 minutes per question, minimum 10 minutes
+    }
   }, [questions, passingScore, timeLimit, maxAttempts, randomizeQuestions, randomizeOptions, questionsPerAttempt, questionBank, immediateFeedback, setValue]);
 
   return (
@@ -277,6 +312,7 @@ const QuizLessonForm: React.FC<QuizLessonFormProps> = ({
             <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
               <HelpCircle className="h-12 w-12 mx-auto text-gray-400 mb-4" />
               <p className="text-gray-600 mb-4">No questions added yet</p>
+              <p className="text-sm text-amber-600 mb-4">⚠️ Quiz lessons require at least one question</p>
               <Button onClick={addQuestion}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add First Question
@@ -389,22 +425,42 @@ const QuizLessonForm: React.FC<QuizLessonFormProps> = ({
                     {question.type === 'MULTIPLE_CHOICE' && (
                       <div className="space-y-2">
                         <Label>Answer Options</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Fill in the options and select the correct answer using the radio button
+                        </p>
                         {question.options?.map((option, optionIndex) => (
                           <div key={optionIndex} className="flex items-center gap-2">
                             <Input
                               value={option}
                               onChange={(e) => updateOption(index, optionIndex, e.target.value)}
                               placeholder={`Option ${optionIndex + 1}`}
+                              className={option.trim() === '' ? 'border-gray-300' : 'border-green-300'}
                             />
-                            <input
-                              type="radio"
-                              name={`correct_${question.id}`}
-                              checked={question.correctAnswer === option}
-                              onChange={() => updateQuestion(index, 'correctAnswer', option)}
-                              className="w-4 h-4"
-                            />
+                            <div className="flex items-center">
+                              <input
+                                type="radio"
+                                name={`correct_${question.id}`}
+                                checked={question.correctAnswer === option}
+                                onChange={() => {
+                                  if (option.trim() !== '') {
+                                    updateQuestion(index, 'correctAnswer', option);
+                                  }
+                                }}
+                                disabled={option.trim() === ''}
+                                className="w-4 h-4 disabled:opacity-50"
+                              />
+                              {option.trim() === '' && (
+                                <span className="ml-1 text-xs text-gray-400">Fill option first</span>
+                              )}
+                              {question.correctAnswer === option && option.trim() !== '' && (
+                                <span className="ml-1 text-xs text-green-600">✓ Correct</span>
+                              )}
+                            </div>
                           </div>
                         ))}
+                        {!question.correctAnswer && (
+                          <p className="text-xs text-amber-600">⚠️ Please select a correct answer</p>
+                        )}
                       </div>
                     )}
 
@@ -578,6 +634,79 @@ const QuizLessonForm: React.FC<QuizLessonFormProps> = ({
           )}
         </CardContent>
       </Card>
+
+      {/* Quiz Summary */}
+      {questions.length > 0 && (
+        <Card className={`border-2 ${
+          questions.length > 0 && questions.every(q => q.question.trim() && q.correctAnswer.trim())
+            ? 'border-green-200 bg-green-50 dark:bg-green-900/20'
+            : 'border-amber-200 bg-amber-50 dark:bg-amber-900/20'
+        }`}>
+          <CardHeader className="pb-3">
+            <CardTitle className={`text-lg ${
+              questions.length > 0 && questions.every(q => q.question.trim() && q.correctAnswer.trim())
+                ? 'text-green-800 dark:text-green-200'
+                : 'text-amber-800 dark:text-amber-200'
+            }`}>
+              Quiz Summary
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div>
+                <span className="font-medium">Questions:</span> {questions.length}
+              </div>
+              <div>
+                <span className="font-medium">Passing Score:</span> {passingScore}%
+              </div>
+              <div>
+                <span className="font-medium">Time Limit:</span> {timeLimit ? `${timeLimit} min` : 'No limit'}
+              </div>
+              <div>
+                <span className="font-medium">Max Attempts:</span> {maxAttempts || 'Unlimited'}
+              </div>
+            </div>
+
+            {/* Validation Status */}
+            <div className="mt-4 space-y-2">
+              {questions.map((q, idx) => {
+                const hasQuestion = q.question.trim() !== '';
+                const hasCorrectAnswer = q.correctAnswer.trim() !== '';
+                const isValid = hasQuestion && hasCorrectAnswer;
+
+                return (
+                  <div key={q.id} className="flex items-center gap-2 text-sm">
+                    <span className={`w-4 h-4 rounded-full flex items-center justify-center text-xs ${
+                      isValid ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+                    }`}>
+                      {isValid ? '✓' : '!'}
+                    </span>
+                    <span>Question {idx + 1}:</span>
+                    <span className={hasQuestion ? 'text-green-600' : 'text-red-600'}>
+                      {hasQuestion ? 'Has question text' : 'Missing question text'}
+                    </span>
+                    <span className="text-gray-400">•</span>
+                    <span className={hasCorrectAnswer ? 'text-green-600' : 'text-red-600'}>
+                      {hasCorrectAnswer ? 'Has correct answer' : 'Missing correct answer'}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className={`mt-3 text-sm ${
+              questions.length > 0 && questions.every(q => q.question.trim() && q.correctAnswer.trim())
+                ? 'text-green-700 dark:text-green-300'
+                : 'text-amber-700 dark:text-amber-300'
+            }`}>
+              {questions.length > 0 && questions.every(q => q.question.trim() && q.correctAnswer.trim())
+                ? '✅ Quiz is ready to be created'
+                : '⚠️ Please complete all questions before creating the quiz'
+              }
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

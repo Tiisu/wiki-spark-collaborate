@@ -1,5 +1,27 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
+// Utility function to parse quiz data from lesson content
+function parseQuizData(lesson: any): any {
+  if (lesson.type === 'QUIZ' && lesson.content) {
+    try {
+      const quizData = JSON.parse(lesson.content);
+      return {
+        id: lesson._id,
+        title: lesson.title,
+        description: lesson.description || '',
+        questions: quizData.questions || [],
+        passingScore: quizData.passingScore || 70,
+        timeLimit: quizData.timeLimit,
+        lessonId: lesson._id
+      };
+    } catch (error) {
+      console.error('Failed to parse quiz data for lesson:', lesson._id, error);
+      return null;
+    }
+  }
+  return null;
+}
+
 export interface ApiResponse<T = any> {
   success: boolean;
   message: string;
@@ -292,19 +314,32 @@ export const courseApi = {
         title: module.title,
         description: module.description || '',
         order: module.order,
-        lessons: module.lessons?.map((lesson: any) => ({
-          id: lesson._id,
-          title: lesson.title,
-          content: lesson.content,
-          type: lesson.type,
-          videoUrl: lesson.videoUrl,
-          duration: lesson.duration,
-          order: lesson.order,
-          isCompleted: lesson.isCompleted || false, // Now comes from backend with progress
-          progress: lesson.progress?.completionPercentage || 0, // Now comes from backend with progress
-          moduleId: lesson.module,
-          resources: lesson.resources || []
-        })) || []
+        lessons: module.lessons?.map((lesson: any) => {
+          const baseLesson = {
+            id: lesson._id,
+            title: lesson.title,
+            content: lesson.content,
+            type: lesson.type,
+            videoUrl: lesson.videoUrl,
+            duration: lesson.duration,
+            order: lesson.order,
+            isCompleted: lesson.isCompleted || false, // Now comes from backend with progress
+            progress: lesson.progress?.completionPercentage || 0, // Now comes from backend with progress
+            moduleId: lesson.module,
+            resources: lesson.resources || []
+          };
+
+          // Parse quiz data for quiz lessons
+          const quizData = parseQuizData(lesson);
+          if (quizData) {
+            return {
+              ...baseLesson,
+              quiz: quizData
+            };
+          }
+
+          return baseLesson;
+        }) || []
       })) || []
     } as Course;
   },
@@ -583,16 +618,32 @@ export type LessonType =
   | 'WIKIPEDIA_EXERCISE'
   | 'PEER_REVIEW';
 
+
+
 // Quiz question types
 export interface QuizQuestion {
   id: string;
-  type: 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'FILL_IN_BLANK';
+  type: 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'FILL_IN_BLANK' | 'MATCHING' | 'ORDERING' | 'SHORT_ANSWER' | 'ESSAY';
   question: string;
   options?: string[];
   correctAnswer: string | string[];
   explanation?: string;
   points: number;
   order: number;
+
+  // Additional fields for new question types
+  maxLength?: number;
+  minLength?: number;
+  keywords?: string[];
+  rubric?: {
+    criteria: string;
+    points: number;
+    description: string;
+  }[];
+  caseSensitive?: boolean;
+  allowPartialCredit?: boolean;
+  weight?: number;
+  difficulty?: 'easy' | 'medium' | 'hard';
 }
 
 // Interactive elements for lessons
@@ -671,31 +722,6 @@ export interface CreateLessonData {
 }
 
 // Quiz interfaces
-export interface QuizQuestion {
-  id: string;
-  type: 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'FILL_IN_BLANK' | 'MATCHING' | 'ORDERING' | 'SHORT_ANSWER' | 'ESSAY';
-  question: string;
-  options?: string[];
-  correctAnswer: string | string[];
-  explanation?: string;
-  points: number;
-  order: number;
-
-  // Additional fields for new question types
-  maxLength?: number;
-  minLength?: number;
-  keywords?: string[];
-  rubric?: {
-    criteria: string;
-    points: number;
-    description: string;
-  }[];
-  caseSensitive?: boolean;
-  allowPartialCredit?: boolean;
-  weight?: number;
-  difficulty?: 'easy' | 'medium' | 'hard';
-}
-
 export interface Quiz {
   _id: string;
   title: string;
@@ -851,7 +877,14 @@ export const lessonApi = {
     const response = await apiRequest<{ lessons: LessonData[] }>(
       `/api/courses/${courseId}/modules/${moduleId}/lessons`
     );
-    return response.data!;
+
+    // Transform lessons to include parsed quiz data
+    const transformedLessons = response.data!.lessons.map((lesson: any) => {
+      const quizData = parseQuizData(lesson);
+      return quizData ? { ...lesson, quiz: quizData } : lesson;
+    });
+
+    return { lessons: transformedLessons };
   },
 
   // Create lesson
@@ -1398,6 +1431,71 @@ export const adminApi = {
     const data = await response.json();
     return data.data;
   },
+};
+
+// Assignment API functions
+export const assignmentApi = {
+  // Submit assignment
+  submitAssignment: async (lessonId: string, submissionData: { text: string; files?: any[] }): Promise<any> => {
+    const response = await apiRequest<any>(`/api/assignments/lesson/${lessonId}/submit`, {
+      method: 'POST',
+      body: JSON.stringify(submissionData),
+    });
+    return response.data!;
+  },
+
+  // Save assignment draft
+  saveDraft: async (lessonId: string, submissionData: { text: string; files?: any[] }): Promise<any> => {
+    const response = await apiRequest<any>(`/api/assignments/lesson/${lessonId}/draft`, {
+      method: 'POST',
+      body: JSON.stringify(submissionData),
+    });
+    return response.data!;
+  },
+
+  // Get assignment submission
+  getAssignmentSubmission: async (lessonId: string): Promise<any> => {
+    const response = await apiRequest<any>(`/api/assignments/lesson/${lessonId}`);
+    return response.data!;
+  },
+
+  // Update assignment submission
+  updateAssignmentSubmission: async (assignmentId: string, updateData: any): Promise<any> => {
+    const response = await apiRequest<any>(`/api/assignments/${assignmentId}`, {
+      method: 'PUT',
+      body: JSON.stringify(updateData),
+    });
+    return response.data!;
+  },
+
+  // Get assignments for grading (instructors only)
+  getAssignmentsForGrading: async (courseId: string): Promise<any> => {
+    const response = await apiRequest<any>(`/api/assignments/course/${courseId}/grading`);
+    return response.data!;
+  },
+
+  // Grade assignment (instructors only)
+  gradeAssignment: async (assignmentId: string, grade: number, feedback?: string): Promise<any> => {
+    const response = await apiRequest<any>(`/api/assignments/${assignmentId}/grade`, {
+      method: 'POST',
+      body: JSON.stringify({ grade, feedback }),
+    });
+    return response.data!;
+  },
+
+  // Get assignment statistics (instructors only)
+  getAssignmentStatistics: async (courseId: string): Promise<any> => {
+    const response = await apiRequest<any>(`/api/assignments/course/${courseId}/statistics`);
+    return response.data!;
+  },
+
+  // Delete assignment submission
+  deleteAssignmentSubmission: async (assignmentId: string): Promise<any> => {
+    const response = await apiRequest<any>(`/api/assignments/${assignmentId}`, {
+      method: 'DELETE',
+    });
+    return response.data!;
+  }
 };
 
 export { ApiError };

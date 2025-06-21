@@ -2,7 +2,8 @@ import { Request, Response } from 'express';
 import courseService from '../services/courseService';
 import { catchAsync, AppError } from '../middleware/errorHandler';
 import { AuthRequest } from '../types';
-import { CourseLevel } from '../models/Course';
+import Course, { CourseLevel } from '../models/Course';
+import Lesson from '../models/Lesson';
 
 // Get all courses with pagination and filtering
 export const getCourses = catchAsync(async (req: Request, res: Response) => {
@@ -227,8 +228,19 @@ export const getEnrolledCourses = catchAsync(async (req: AuthRequest, res: Respo
   }
 
   // Transform enrollments to courses with enrollment metadata
-  const coursesWithEnrollmentData = filteredEnrollments.map(enrollment => {
+  const coursesWithEnrollmentData = await Promise.all(filteredEnrollments.map(async enrollment => {
     const course = enrollment.course as any; // Type assertion for populated course
+
+    // Calculate totalLessons dynamically if not set or is 0
+    let totalLessons = course.totalLessons || 0;
+    if (totalLessons === 0) {
+      totalLessons = await Lesson.countDocuments({ course: course._id });
+      // Update the course record with the calculated count
+      if (totalLessons > 0) {
+        await Course.findByIdAndUpdate(course._id, { totalLessons });
+      }
+    }
+
     return {
       id: course._id || course.id,
       title: course.title,
@@ -236,7 +248,7 @@ export const getEnrolledCourses = catchAsync(async (req: AuthRequest, res: Respo
       instructor: course.instructor,
       thumbnail: course.thumbnail,
       progress: enrollment.progress,
-      totalLessons: course.totalLessons || 0,
+      totalLessons,
       completedLessons: enrollment.completedLessons?.length || 0,
       videoLessons: 0, // This would need to be calculated from lessons
       estimatedHours: course.duration ? Math.ceil(course.duration / 60) : 0,
@@ -247,7 +259,7 @@ export const getEnrolledCourses = catchAsync(async (req: AuthRequest, res: Respo
       rating: course.rating || 0,
       isCompleted: enrollment.status === 'COMPLETED'
     };
-  });
+  }));
 
   // Pagination
   const startIndex = (Number(page) - 1) * Number(limit);

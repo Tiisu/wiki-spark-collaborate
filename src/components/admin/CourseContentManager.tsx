@@ -170,9 +170,43 @@ const CourseContentManager: React.FC<CourseContentManagerProps> = ({
 
   // Create lesson mutation
   const createLessonMutation = useMutation({
-    mutationFn: ({ moduleId, lessonData }: { moduleId: string; lessonData: CreateLessonData }) =>
-      lessonApi.createLesson(courseId, moduleId, lessonData),
-    onSuccess: () => {
+    mutationFn: ({ moduleId, lessonData }: { moduleId: string; lessonData: CreateLessonData }) => {
+      console.log('Creating lesson with data:', lessonData);
+
+      // Additional validation for quiz lessons
+      if (lessonData.type === 'QUIZ') {
+        try {
+          const quizData = JSON.parse(lessonData.content);
+          console.log('Quiz data:', quizData);
+
+          if (!quizData.questions || quizData.questions.length === 0) {
+            throw new Error('Quiz lessons must have at least one question');
+          }
+
+          // Validate each question
+          quizData.questions.forEach((q: any, index: number) => {
+            if (!q.question || q.question.trim() === '') {
+              throw new Error(`Question ${index + 1} is missing question text`);
+            }
+            if (!q.correctAnswer || q.correctAnswer === '') {
+              throw new Error(`Question ${index + 1} is missing correct answer`);
+            }
+            if (q.type === 'MULTIPLE_CHOICE' && (!q.options || q.options.length < 2)) {
+              throw new Error(`Question ${index + 1} must have at least 2 options`);
+            }
+          });
+        } catch (parseError) {
+          if (parseError instanceof Error && parseError.message.includes('Question')) {
+            throw parseError;
+          }
+          throw new Error('Invalid quiz data format');
+        }
+      }
+
+      return lessonApi.createLesson(courseId, moduleId, lessonData);
+    },
+    onSuccess: (data) => {
+      console.log('Lesson created successfully:', data);
       toast({
         title: 'Success',
         description: 'Lesson created successfully',
@@ -181,9 +215,10 @@ const CourseContentManager: React.FC<CourseContentManagerProps> = ({
       setShowCreateLesson(null);
     },
     onError: (error: Error) => {
+      console.error('Error creating lesson:', error);
       toast({
-        title: 'Error',
-        description: error.message,
+        title: 'Error Creating Lesson',
+        description: error.message || 'Failed to create lesson. Please try again.',
         variant: 'destructive',
       });
     }

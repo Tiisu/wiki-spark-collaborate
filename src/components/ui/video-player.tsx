@@ -14,6 +14,29 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+// Utility functions for video URL handling
+const getVideoType = (url: string): 'youtube' | 'vimeo' | 'direct' => {
+  if (url.includes('youtube.com') || url.includes('youtu.be')) {
+    return 'youtube';
+  }
+  if (url.includes('vimeo.com')) {
+    return 'vimeo';
+  }
+  return 'direct';
+};
+
+const getYouTubeVideoId = (url: string): string | null => {
+  const regex = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/;
+  const match = url.match(regex);
+  return match ? match[1] : null;
+};
+
+const getVimeoVideoId = (url: string): string | null => {
+  const regex = /(?:vimeo\.com\/)([0-9]+)/;
+  const match = url.match(regex);
+  return match ? match[1] : null;
+};
+
 interface VideoPlayerProps {
   src: string;
   title?: string;
@@ -45,6 +68,25 @@ export function VideoPlayer({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [videoType, setVideoType] = useState<'youtube' | 'vimeo' | 'direct'>('direct');
+
+  // Detect video type when src changes
+  useEffect(() => {
+    const type = getVideoType(src);
+    setVideoType(type);
+    setIsLoading(true);
+    setHasError(false);
+
+    // For embedded videos, simulate loading completion after a short delay
+    if (type !== 'direct') {
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [src]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -53,9 +95,27 @@ export function VideoPlayer({
     const handleLoadedMetadata = () => {
       setDuration(video.duration);
       setIsLoading(false);
+      setHasError(false);
       if (startTime > 0) {
         video.currentTime = startTime;
       }
+    };
+
+    const handleCanPlay = () => {
+      setIsLoading(false);
+      setHasError(false);
+    };
+
+    const handleError = () => {
+      setIsLoading(false);
+      setHasError(true);
+      setErrorMessage('Failed to load video. Please check the video URL or try again.');
+      console.error('Video loading error for src:', src);
+    };
+
+    const handleLoadStart = () => {
+      setIsLoading(true);
+      setHasError(false);
     };
 
     const handleTimeUpdate = () => {
@@ -77,6 +137,9 @@ export function VideoPlayer({
     const handlePause = () => setIsPlaying(false);
 
     video.addEventListener('loadedmetadata', handleLoadedMetadata);
+    video.addEventListener('canplay', handleCanPlay);
+    video.addEventListener('error', handleError);
+    video.addEventListener('loadstart', handleLoadStart);
     video.addEventListener('timeupdate', handleTimeUpdate);
     video.addEventListener('ended', handleEnded);
     video.addEventListener('play', handlePlay);
@@ -84,12 +147,53 @@ export function VideoPlayer({
 
     return () => {
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      video.removeEventListener('canplay', handleCanPlay);
+      video.removeEventListener('error', handleError);
+      video.removeEventListener('loadstart', handleLoadStart);
       video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('ended', handleEnded);
       video.removeEventListener('play', handlePlay);
       video.removeEventListener('pause', handlePause);
     };
   }, [src, onProgress, onComplete, startTime]);
+
+  // Progress tracking for embedded videos
+  useEffect(() => {
+    if (videoType === 'direct') return;
+
+    let progressInterval: NodeJS.Timeout;
+    let startTime = Date.now();
+
+    const trackProgress = () => {
+      const elapsed = (Date.now() - startTime) / 1000; // seconds
+      const estimatedDuration = 300; // 5 minutes default for embedded videos
+      const progress = Math.min((elapsed / estimatedDuration) * 100, 95); // Cap at 95%
+
+      setCurrentTime(elapsed);
+      setDuration(estimatedDuration);
+
+      if (onProgress) {
+        onProgress(progress);
+      }
+
+      // Auto-complete after estimated duration
+      if (progress >= 90 && onComplete) {
+        onComplete();
+        clearInterval(progressInterval);
+      }
+    };
+
+    // Start tracking progress after video loads
+    if (!isLoading && !hasError) {
+      progressInterval = setInterval(trackProgress, 5000); // Update every 5 seconds
+    }
+
+    return () => {
+      if (progressInterval) {
+        clearInterval(progressInterval);
+      }
+    };
+  }, [videoType, isLoading, hasError, onProgress, onComplete]);
 
   const togglePlay = () => {
     const video = videoRef.current;
@@ -180,44 +284,118 @@ export function VideoPlayer({
       onMouseEnter={() => setShowControls(true)}
       onMouseLeave={() => setShowControls(false)}
     >
-      <video
-        ref={videoRef}
-        src={src}
-        poster={thumbnail}
-        className="w-full h-full object-contain"
-        autoPlay={autoPlay}
-        playsInline
-      />
+      {/* Direct Video */}
+      {videoType === 'direct' && (
+        <video
+          ref={videoRef}
+          src={src}
+          poster={thumbnail}
+          className="w-full h-full object-contain"
+          autoPlay={autoPlay}
+          playsInline
+        />
+      )}
+
+      {/* YouTube Embed */}
+      {videoType === 'youtube' && (
+        <iframe
+          src={`https://www.youtube.com/embed/${getYouTubeVideoId(src)}?enablejsapi=1&origin=${window.location.origin}`}
+          className="w-full h-full"
+          frameBorder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          onLoad={() => {
+            setIsLoading(false);
+            setHasError(false);
+          }}
+          onError={() => {
+            setIsLoading(false);
+            setHasError(true);
+            setErrorMessage('Failed to load YouTube video. Please check the video URL.');
+          }}
+        />
+      )}
+
+      {/* Vimeo Embed */}
+      {videoType === 'vimeo' && (
+        <iframe
+          src={`https://player.vimeo.com/video/${getVimeoVideoId(src)}?title=0&byline=0&portrait=0`}
+          className="w-full h-full"
+          frameBorder="0"
+          allow="autoplay; fullscreen; picture-in-picture"
+          allowFullScreen
+          onLoad={() => {
+            setIsLoading(false);
+            setHasError(false);
+          }}
+          onError={() => {
+            setIsLoading(false);
+            setHasError(true);
+            setErrorMessage('Failed to load Vimeo video. Please check the video URL.');
+          }}
+        />
+      )}
 
       {/* Loading Overlay */}
-      {isLoading && (
+      {isLoading && !hasError && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/50">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
         </div>
       )}
 
-      {/* Controls Overlay */}
-      <div 
-        className={cn(
-          "absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent transition-opacity duration-300",
-          showControls ? "opacity-100" : "opacity-0"
-        )}
-      >
-        {/* Play/Pause Button (Center) */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-16 w-16 rounded-full bg-black/50 hover:bg-black/70 text-white"
-            onClick={togglePlay}
-          >
-            {isPlaying ? (
-              <Pause className="h-8 w-8" />
-            ) : (
-              <Play className="h-8 w-8 ml-1" />
-            )}
-          </Button>
+      {/* Error Overlay */}
+      {hasError && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+          <div className="text-center text-white p-6">
+            <div className="text-red-400 mb-4">
+              <svg className="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 19.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold mb-2">Video Loading Error</h3>
+            <p className="text-sm text-gray-300 mb-4">{errorMessage}</p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setHasError(false);
+                setIsLoading(true);
+                if (videoRef.current) {
+                  videoRef.current.load();
+                }
+              }}
+              className="text-white border-white hover:bg-white hover:text-black"
+            >
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Retry
+            </Button>
+          </div>
         </div>
+      )}
+
+      {/* Controls Overlay - Only for direct videos */}
+      {videoType === 'direct' && (
+        <div
+          className={cn(
+            "absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent transition-opacity duration-300",
+            showControls ? "opacity-100" : "opacity-0"
+          )}
+        >
+          {/* Play/Pause Button (Center) */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-16 w-16 rounded-full bg-black/50 hover:bg-black/70 text-white"
+              onClick={togglePlay}
+            >
+              {isPlaying ? (
+                <Pause className="h-8 w-8" />
+              ) : (
+                <Play className="h-8 w-8 ml-1" />
+              )}
+            </Button>
+          </div>
 
         {/* Bottom Controls */}
         <div className="absolute bottom-0 left-0 right-0 p-4 space-y-2">
@@ -308,13 +486,21 @@ export function VideoPlayer({
           </div>
         </div>
 
-        {/* Title Overlay */}
-        {title && (
-          <div className="absolute top-4 left-4 right-4">
-            <h3 className="text-white text-lg font-semibold truncate">{title}</h3>
-          </div>
-        )}
-      </div>
+          {/* Title Overlay */}
+          {title && (
+            <div className="absolute top-4 left-4 right-4">
+              <h3 className="text-white text-lg font-semibold truncate">{title}</h3>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Title Overlay for embedded videos */}
+      {videoType !== 'direct' && title && (
+        <div className="absolute top-4 left-4 right-4 z-10">
+          <h3 className="text-white text-lg font-semibold truncate bg-black/50 px-3 py-1 rounded">{title}</h3>
+        </div>
+      )}
     </div>
   );
 }
