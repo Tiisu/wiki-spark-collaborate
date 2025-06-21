@@ -68,6 +68,20 @@ export interface AuthResponse {
   token: string;
 }
 
+export interface UpdateProfileData {
+  firstName?: string;
+  lastName?: string;
+  bio?: string;
+  country?: string;
+  timezone?: string;
+  preferredLanguage?: string;
+}
+
+export interface ChangePasswordData {
+  currentPassword: string;
+  newPassword: string;
+}
+
 class ApiError extends Error {
   constructor(
     message: string,
@@ -187,6 +201,22 @@ export const authApi = {
     });
 
     return response.data!;
+  },
+
+  updateProfile: async (profileData: UpdateProfileData): Promise<{ user: User }> => {
+    const response = await apiRequest<{ user: User }>('/api/auth/update-profile', {
+      method: 'PUT',
+      body: JSON.stringify(profileData),
+    });
+
+    return response.data!;
+  },
+
+  changePassword: async (currentPassword: string, newPassword: string): Promise<void> => {
+    await apiRequest('/api/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
   },
 };
 

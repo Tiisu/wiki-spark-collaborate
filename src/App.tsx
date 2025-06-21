@@ -24,6 +24,8 @@ import CourseBrowser from "./pages/CourseBrowser";
 import QuizPage from "./pages/QuizPage";
 import Achievements from "./pages/Achievements";
 import Certificates from "./pages/Certificates";
+import ProfileSettings from "./pages/ProfileSettings";
+import AccountSettings from "./pages/AccountSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -169,6 +171,22 @@ const App = () => (
               <Route
                 path="/verify/:verificationCode"
                 element={<Certificates />}
+              />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <ProfileSettings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute>
+                    <AccountSettings />
+                  </ProtectedRoute>
+                }
               />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

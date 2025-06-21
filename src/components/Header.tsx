@@ -1,39 +1,42 @@
 
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
-import { useAuth } from '@/contexts/AuthContext';
-import {
-  BookOpen,
-  Users,
-  Calendar,
-  Library,
-  User,
-  LogOut,
-  Menu,
-  X,
-  ChevronDown,
-  Trophy,
-  Award
-} from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
   DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
   Sheet,
   SheetContent,
   SheetTrigger,
 } from '@/components/ui/sheet';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  BookOpen,
+  Home,
+  GraduationCap,
+  TrendingUp,
+  Plus,
+  User,
+  Settings,
+  LogOut,
+  Menu,
+  X,
+  ChevronDown,
+  Bell
+} from 'lucide-react';
 
 const Header = () => {
   const { user, isAuthenticated, logout, getRoleBasedDashboard } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const location = useLocation();
 
   const handleLogout = async () => {
     try {
@@ -44,128 +47,175 @@ const Header = () => {
     }
   };
 
-  const navigationItems = [
-    { href: '/courses', icon: BookOpen, label: 'Courses' },
-    { href: '/achievements', icon: Trophy, label: 'Achievements' },
-    { href: '/certificates', icon: Award, label: 'Certificates' },
-    { href: '/tutorials', icon: Library, label: 'Tutorials' },
-    { href: '#community', icon: Users, label: 'Community' },
-  ];
+  // Role-based navigation items
+  const getNavigationItems = () => {
+    if (!isAuthenticated || !user) {
+      return [
+        { href: '/courses', icon: BookOpen, label: 'Browse Courses', roles: ['all'] },
+      ];
+    }
+
+    const baseItems = [
+      { href: getRoleBasedDashboard(), icon: Home, label: 'Dashboard', roles: ['all'] },
+      { href: '/courses', icon: BookOpen, label: 'Courses', roles: ['all'] },
+    ];
+
+    // Role-specific items
+    if (user.role === 'LEARNER') {
+      baseItems.push(
+        { href: '/student/progress', icon: TrendingUp, label: 'My Progress', roles: ['LEARNER'] }
+      );
+    }
+
+    if (['INSTRUCTOR', 'MENTOR', 'ADMIN', 'SUPER_ADMIN'].includes(user.role)) {
+      baseItems.push(
+        { href: '/instructor/courses/new', icon: Plus, label: 'Create Course', roles: ['INSTRUCTOR', 'MENTOR', 'ADMIN', 'SUPER_ADMIN'] }
+      );
+    }
+
+    return baseItems;
+  };
+
+  const navigationItems = getNavigationItems();
+
+  const isActiveLink = (href: string) => {
+    if (href === getRoleBasedDashboard() && (location.pathname === getRoleBasedDashboard() || location.pathname === '/dashboard')) {
+      return true;
+    }
+    return location.pathname === href || location.pathname.startsWith(href + '/');
+  };
 
   return (
-    <header className="bg-background/80 backdrop-blur-md border-b border-border sticky top-0 z-50">
+    <header
+      className="bg-gradient-to-r from-white via-blue-50/30 to-indigo-50/30 dark:from-background dark:via-blue-950/10 dark:to-indigo-950/10 backdrop-blur-xl border-b border-border/50 sticky top-0 z-50 shadow-sm"
+      role="banner"
+      aria-label="Main navigation"
+    >
       <div className="container mx-auto px-4 py-3 lg:py-4">
         <div className="flex items-center justify-between">
-          {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2 flex-shrink-0">
-            <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
-            <span className="text-lg sm:text-2xl font-bold text-foreground hidden xs:block">
-              WikiWalkthrough
-            </span>
-            <span className="text-lg font-bold text-foreground xs:hidden">
+          {/* Enhanced Logo */}
+          <Link to="/" className="flex items-center space-x-3 flex-shrink-0 group">
+            <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105">
+              <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+            </div>
+            <div className="hidden xs:block">
+              <span className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                WikiWalkthrough
+              </span>
+              <div className="text-xs text-muted-foreground font-medium">
+                Wikipedia Education Platform
+              </div>
+            </div>
+            <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent xs:hidden">
               WWT
             </span>
           </Link>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center space-x-6 xl:space-x-8">
-            {navigationItems.map((item) => (
-              <a
-                key={item.href}
-                href={item.href}
-                className="flex items-center space-x-2 text-muted-foreground hover:text-blue-600 transition-colors duration-200 group"
-              >
-                <item.icon className="h-4 w-4 group-hover:scale-110 transition-transform duration-200" />
-                <span className="font-medium">{item.label}</span>
-              </a>
-            ))}
+          {/* Enhanced Desktop Navigation */}
+          <nav
+            className="hidden lg:flex items-center space-x-2 xl:space-x-4"
+            role="navigation"
+            aria-label="Primary navigation"
+          >
+            {navigationItems.map((item) => {
+              const isActive = isActiveLink(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  className={`
+                    relative flex items-center space-x-2 px-4 py-2.5 rounded-xl font-medium transition-all duration-300 group focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+                    ${isActive
+                      ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-white/60 dark:hover:bg-gray-800/60 hover:shadow-md'
+                    }
+                  `}
+                  aria-current={isActive ? 'page' : undefined}
+                  aria-label={`Navigate to ${item.label}`}
+                >
+                  <item.icon
+                    className={`h-4 w-4 transition-all duration-300 ${
+                      isActive ? 'text-white' : 'group-hover:scale-110'
+                    }`}
+                    aria-hidden="true"
+                  />
+                  <span className="text-sm">{item.label}</span>
+                  {isActive && (
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl opacity-20 animate-pulse"></div>
+                  )}
+                </Link>
+              );
+            })}
           </nav>
 
-          {/* User Menu & Actions */}
-          <div className="flex items-center space-x-2 sm:space-x-4">
+          {/* Enhanced User Menu & Actions */}
+          <div className="flex items-center space-x-3 sm:space-x-4">
             {/* Theme Toggle */}
             <ThemeToggle />
+
             {isAuthenticated && user ? (
               <>
-                {/* Desktop User Menu */}
-                <div className="hidden lg:flex items-center space-x-4">
-                  <Link to={getRoleBasedDashboard()}>
-                    <Button variant="outline" size="sm">
-                      Dashboard
-                    </Button>
-                  </Link>
-                  <Link to="/editor/sandbox">
-                    <Button variant="outline" size="sm">
-                      Editor
-                    </Button>
-                  </Link>
-                  {user && ['INSTRUCTOR', 'MENTOR', 'ADMIN', 'SUPER_ADMIN'].includes(user.role) && (
-                    <Link to="/instructor">
-                      <Button variant="outline" size="sm">
-                        Instructor Panel
-                      </Button>
-                    </Link>
-                  )}
-                  {user && ['ADMIN', 'SUPER_ADMIN'].includes(user.role) && (
-                    <Link to="/admin">
-                      <Button variant="outline" size="sm">
-                        Admin Panel
-                      </Button>
-                    </Link>
-                  )}
-                </div>
+                {/* Notifications */}
+                <Button variant="ghost" size="sm" className="relative p-2 hover:bg-white/60 dark:hover:bg-gray-800/60 rounded-xl">
+                  <Bell className="h-4 w-4" />
+                  <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full text-xs"></span>
+                </Button>
 
-                {/* User Dropdown */}
+                {/* Enhanced User Menu */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="flex items-center space-x-2 px-2 sm:px-3">
-                      <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                        <User className="h-4 w-4 text-white" />
-                      </div>
-                      <span className="hidden sm:block text-foreground font-medium">
-                        {user.firstName}
-                      </span>
-                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    <Button variant="ghost" className="relative h-10 w-10 rounded-xl hover:bg-white/60 dark:hover:bg-gray-800/60 transition-all duration-300">
+                      <Avatar className="h-8 w-8 ring-2 ring-blue-500/20 hover:ring-blue-500/40 transition-all duration-300">
+                        <AvatarImage src={user.avatar} alt={user.firstName} />
+                        <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-sm font-semibold">
+                          {user.firstName?.[0]}{user.lastName?.[0]}
+                        </AvatarFallback>
+                      </Avatar>
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <div className="px-3 py-2">
-                      <p className="text-sm font-medium">{user.firstName} {user.lastName}</p>
-                      <p className="text-xs text-muted-foreground">{user.email}</p>
+                  <DropdownMenuContent className="w-64 p-2" align="end" forceMount>
+                    {/* Enhanced User Info */}
+                    <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-lg mb-2">
+                      <Avatar className="h-10 w-10 ring-2 ring-blue-500/20">
+                        <AvatarImage src={user.avatar} alt={user.firstName} />
+                        <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-semibold">
+                          {user.firstName?.[0]}{user.lastName?.[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col space-y-1 leading-none">
+                        <p className="font-semibold text-sm">{user.firstName} {user.lastName}</p>
+                        <p className="text-xs text-muted-foreground truncate max-w-[150px]">
+                          {user.email}
+                        </p>
+                        <Badge variant="outline" className="w-fit text-xs px-2 py-0.5">
+                          {user.role}
+                        </Badge>
+                      </div>
                     </div>
+
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild className="lg:hidden">
-                      <Link to={getRoleBasedDashboard()} className="flex items-center">
-                        <User className="mr-2 h-4 w-4" />
-                        Dashboard
+
+                    {/* Profile & Settings */}
+                    <DropdownMenuItem asChild>
+                      <Link to="/profile" className="flex items-center py-2.5">
+                        <User className="mr-3 h-4 w-4" />
+                        <span>Profile Settings</span>
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild className="lg:hidden">
-                      <Link to="/editor/sandbox" className="flex items-center">
-                        <BookOpen className="mr-2 h-4 w-4" />
-                        Editor
+
+                    <DropdownMenuItem asChild>
+                      <Link to="/settings" className="flex items-center py-2.5">
+                        <Settings className="mr-3 h-4 w-4" />
+                        <span>Account Settings</span>
                       </Link>
                     </DropdownMenuItem>
-                    {user && ['INSTRUCTOR', 'MENTOR', 'ADMIN', 'SUPER_ADMIN'].includes(user.role) && (
-                      <DropdownMenuItem asChild className="lg:hidden">
-                        <Link to="/instructor" className="flex items-center">
-                          <BookOpen className="mr-2 h-4 w-4" />
-                          Instructor Panel
-                        </Link>
-                      </DropdownMenuItem>
-                    )}
-                    {user && ['ADMIN', 'SUPER_ADMIN'].includes(user.role) && (
-                      <DropdownMenuItem asChild className="lg:hidden">
-                        <Link to="/admin" className="flex items-center">
-                          <BookOpen className="mr-2 h-4 w-4" />
-                          Admin Panel
-                        </Link>
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuSeparator className="lg:hidden" />
-                    <DropdownMenuItem onClick={handleLogout} className="text-red-600">
-                      <LogOut className="mr-2 h-4 w-4" />
-                      Logout
+
+                    <DropdownMenuSeparator />
+
+                    {/* Sign Out */}
+                    <DropdownMenuItem onClick={handleLogout} className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20 py-2.5">
+                      <LogOut className="mr-3 h-4 w-4" />
+                      <span>Sign Out</span>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -186,35 +236,57 @@ const Header = () => {
               </>
             )}
 
-            {/* Mobile Menu Button */}
+            {/* Enhanced Mobile Menu Button */}
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="sm" className="lg:hidden">
+                <Button variant="ghost" size="sm" className="lg:hidden p-2 hover:bg-white/60 dark:hover:bg-gray-800/60 rounded-xl transition-all duration-300">
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-80">
+              <SheetContent side="right" className="w-80 bg-gradient-to-b from-white via-blue-50/30 to-indigo-50/30 dark:from-background dark:via-blue-950/10 dark:to-indigo-950/10">
                 <div className="flex flex-col space-y-6 mt-6">
+                  {/* Mobile Header */}
+                  <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-xl">
+                    <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg">
+                      <BookOpen className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                        WikiWalkthrough
+                      </h3>
+                      <p className="text-xs text-muted-foreground">Wikipedia Education</p>
+                    </div>
+                  </div>
+
+                  {/* Enhanced Mobile Navigation */}
+                  <nav className="space-y-2">
+                    {navigationItems.map((item) => {
+                      const isActive = isActiveLink(item.href);
+                      return (
+                        <Link
+                          key={item.href}
+                          to={item.href}
+                          onClick={() => setMobileMenuOpen(false)}
+                          className={`
+                            flex items-center space-x-3 p-3 rounded-xl transition-all duration-300 font-medium
+                            ${isActive
+                              ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-white/60 dark:hover:bg-gray-800/60'
+                            }
+                          `}
+                        >
+                          <item.icon className="h-5 w-5" />
+                          <span>{item.label}</span>
+                        </Link>
+                      );
+                    })}
+                  </nav>
+
                   {/* Mobile Theme Toggle */}
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between p-3 bg-white/60 dark:bg-gray-800/60 rounded-xl">
                     <span className="text-sm font-medium">Theme</span>
                     <ThemeToggle />
                   </div>
-
-                  {/* Mobile Navigation */}
-                  <nav className="space-y-4">
-                    {navigationItems.map((item) => (
-                      <a
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setMobileMenuOpen(false)}
-                        className="flex items-center space-x-3 text-muted-foreground hover:text-blue-600 transition-colors p-2 rounded-lg hover:bg-muted"
-                      >
-                        <item.icon className="h-5 w-5" />
-                        <span className="font-medium">{item.label}</span>
-                      </a>
-                    ))}
-                  </nav>
 
                   {/* Mobile Auth Actions */}
                   {!isAuthenticated && (

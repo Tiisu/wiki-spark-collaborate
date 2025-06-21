@@ -1,33 +1,18 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
-  BookOpen,
-  Users,
-  Award,
-  Clock,
-  LogOut,
   User,
-  TrendingUp,
-  Target,
-  Calendar,
-  Star,
-  Play,
-  CheckCircle,
-  BarChart3
+  Star
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
 
 import Header from '@/components/Header';
 import { WikipediaLearningDashboard } from '@/components/dashboard/WikipediaLearningDashboard';
 import StudentProgress from '@/components/student/StudentProgress';
 import EnrolledCourses from '@/components/student/EnrolledCourses';
-import LearningPath from '@/components/student/LearningPath';
-import Achievements from '@/components/student/Achievements';
 import StudyPlan from '@/components/student/StudyPlan';
 import { RoleDebugger } from '@/components/debug/RoleDebugger';
 
@@ -82,15 +67,13 @@ const StudentDashboard = () => {
                 <SelectItem value="overview">📊 Overview</SelectItem>
                 <SelectItem value="courses">📚 My Courses</SelectItem>
                 <SelectItem value="progress">📈 Progress</SelectItem>
-                <SelectItem value="learning-path">🎯 Learning Path</SelectItem>
-                <SelectItem value="achievements">🏆 Achievements</SelectItem>
                 <SelectItem value="study-plan">📅 Study Plan</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {/* Desktop Tab Navigation */}
-          <TabsList className="hidden sm:grid w-full grid-cols-3 lg:grid-cols-6 h-auto p-1">
+          <TabsList className="hidden sm:grid w-full grid-cols-2 lg:grid-cols-4 h-auto p-1">
             <TabsTrigger value="overview" className="text-xs sm:text-sm py-2">
               <span className="hidden lg:inline">📊 </span>Overview
             </TabsTrigger>
@@ -99,12 +82,6 @@ const StudentDashboard = () => {
             </TabsTrigger>
             <TabsTrigger value="progress" className="text-xs sm:text-sm py-2">
               <span className="hidden lg:inline">📈 </span>Progress
-            </TabsTrigger>
-            <TabsTrigger value="learning-path" className="text-xs sm:text-sm py-2">
-              <span className="hidden lg:inline">🎯 </span>Path
-            </TabsTrigger>
-            <TabsTrigger value="achievements" className="text-xs sm:text-sm py-2">
-              <span className="hidden lg:inline">🏆 </span>Awards
             </TabsTrigger>
             <TabsTrigger value="study-plan" className="text-xs sm:text-sm py-2">
               <span className="hidden lg:inline">📅 </span>Plan
@@ -121,14 +98,6 @@ const StudentDashboard = () => {
 
           <TabsContent value="progress">
             <StudentProgress detailed={true} />
-          </TabsContent>
-
-          <TabsContent value="learning-path">
-            <LearningPath />
-          </TabsContent>
-
-          <TabsContent value="achievements">
-            <Achievements />
           </TabsContent>
 
           <TabsContent value="study-plan">
