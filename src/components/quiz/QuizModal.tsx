@@ -58,15 +58,25 @@ export function QuizModal({
 }: QuizModalProps) {
   const [currentAttempt, setCurrentAttempt] = useState<QuizAttempt | null>(null);
   const [showQuiz, setShowQuiz] = useState(!previousAttempt);
+  const [showReview, setShowReview] = useState(false);
+  const [isRetaking, setIsRetaking] = useState(false);
 
   const handleQuizComplete = (attempt: QuizAttempt) => {
     setCurrentAttempt(attempt);
+    setIsRetaking(false);
     onQuizComplete(attempt);
   };
 
   const handleRetry = () => {
     setCurrentAttempt(null);
     setShowQuiz(true);
+    setShowReview(false);
+    setIsRetaking(true);
+  };
+
+  const handleReview = () => {
+    setShowQuiz(false);
+    setShowReview(true);
   };
 
   const handleProceed = () => {
@@ -192,8 +202,14 @@ export function QuizModal({
                   <Button variant="outline" onClick={onClose}>
                     Close
                   </Button>
+                  {latestAttempt && latestAttempt.passed && (
+                    <Button onClick={handleReview} variant="outline" className="flex items-center space-x-2">
+                      <BookOpen className="h-4 w-4" />
+                      <span>Review Quiz</span>
+                    </Button>
+                  )}
                   {(!latestAttempt || !latestAttempt.passed) && (
-                    <Button onClick={() => setShowQuiz(true)} className="flex items-center space-x-2">
+                    <Button onClick={handleRetry} className="flex items-center space-x-2">
                       <Trophy className="h-4 w-4" />
                       <span>{latestAttempt ? 'Retake Quiz' : 'Start Quiz'}</span>
                     </Button>
@@ -222,7 +238,17 @@ export function QuizModal({
               quiz={quiz}
               onComplete={handleQuizComplete}
               onRetry={handleRetry}
-              previousAttempt={previousAttempt}
+              previousAttempt={isRetaking ? undefined : previousAttempt}
+            />
+          )}
+
+          {/* Review Mode */}
+          {showReview && latestAttempt && (
+            <Quiz
+              quiz={quiz}
+              onComplete={() => {}} // No-op since this is review mode
+              onRetry={handleRetry}
+              previousAttempt={latestAttempt}
             />
           )}
         </div>

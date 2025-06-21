@@ -1,14 +1,9 @@
 import mongoose, { Schema } from 'mongoose';
 
 export enum LessonType {
-  VIDEO = 'VIDEO',
   TEXT = 'TEXT',
-  QUIZ = 'QUIZ',
-  ASSIGNMENT = 'ASSIGNMENT',
-  RESOURCE = 'RESOURCE',
-  INTERACTIVE_EDITOR = 'INTERACTIVE_EDITOR',
-  WIKIPEDIA_EXERCISE = 'WIKIPEDIA_EXERCISE',
-  PEER_REVIEW = 'PEER_REVIEW'
+  VIDEO = 'VIDEO',
+  QUIZ = 'QUIZ'
 }
 
 export interface ILesson extends mongoose.Document {
@@ -30,35 +25,7 @@ export interface ILesson extends mongoose.Document {
   isPublished: boolean;
   isFree: boolean;
 
-  // Wikipedia-specific fields
-  wikipediaExercise?: {
-    articleTitle?: string;
-    initialContent?: string;
-    targetContent?: string;
-    instructions: string;
-    editingMode: 'sandbox' | 'guided' | 'live';
-    allowedActions: string[]; // e.g., ['format', 'link', 'cite']
-    successCriteria: Array<{
-      type: 'contains' | 'format' | 'structure' | 'links' | 'citations';
-      description: string;
-      required: boolean;
-    }>;
-  };
 
-  // Interactive elements
-  interactiveElements?: Array<{
-    type: 'tooltip' | 'highlight' | 'popup' | 'guide';
-    trigger: string;
-    content: string;
-    position?: string;
-  }>;
-
-  // Assessment criteria
-  assessmentCriteria?: Array<{
-    criterion: string;
-    weight: number;
-    description: string;
-  }>;
 
   createdAt: Date;
   updatedAt: Date;
@@ -136,88 +103,7 @@ const lessonSchema = new Schema<ILesson>({
     default: false
   },
 
-  // Wikipedia-specific fields
-  wikipediaExercise: {
-    articleTitle: {
-      type: String,
-      trim: true
-    },
-    initialContent: {
-      type: String
-    },
-    targetContent: {
-      type: String
-    },
-    instructions: {
-      type: String,
-      required: function() {
-        return this.type === 'WIKIPEDIA_EXERCISE' || this.type === 'INTERACTIVE_EDITOR';
-      }
-    },
-    editingMode: {
-      type: String,
-      enum: ['sandbox', 'guided', 'live'],
-      default: 'sandbox'
-    },
-    allowedActions: [{
-      type: String,
-      enum: ['format', 'link', 'cite', 'structure', 'image', 'template']
-    }],
-    successCriteria: [{
-      type: {
-        type: String,
-        enum: ['contains', 'format', 'structure', 'links', 'citations'],
-        required: true
-      },
-      description: {
-        type: String,
-        required: true
-      },
-      required: {
-        type: Boolean,
-        default: true
-      }
-    }]
-  },
 
-  // Interactive elements
-  interactiveElements: [{
-    type: {
-      type: String,
-      enum: ['tooltip', 'highlight', 'popup', 'guide'],
-      required: true
-    },
-    trigger: {
-      type: String,
-      required: true
-    },
-    content: {
-      type: String,
-      required: true
-    },
-    position: {
-      type: String,
-      default: 'auto'
-    }
-  }],
-
-  // Assessment criteria
-  assessmentCriteria: [{
-    criterion: {
-      type: String,
-      required: true
-    },
-    weight: {
-      type: Number,
-      min: 0,
-      max: 100,
-      required: true
-    },
-    description: {
-      type: String,
-      required: true
-    }
-  }]
 }, {
   timestamps: true,
   toJSON: {

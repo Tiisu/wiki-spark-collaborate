@@ -487,7 +487,7 @@ export interface TemplateModule {
 export interface TemplateLesson {
   title: string;
   description?: string;
-  type: 'VIDEO' | 'TEXT' | 'QUIZ' | 'ASSIGNMENT' | 'RESOURCE';
+  type: 'TEXT' | 'VIDEO' | 'QUIZ';
   order: number;
   content?: string;
   duration?: number;
@@ -611,12 +611,7 @@ export interface CreateModuleData {
 export type LessonType =
   | 'TEXT'
   | 'VIDEO'
-  | 'QUIZ'
-  | 'ASSIGNMENT'
-  | 'RESOURCE'
-  | 'INTERACTIVE_EDITOR'
-  | 'WIKIPEDIA_EXERCISE'
-  | 'PEER_REVIEW';
+  | 'QUIZ';
 
 
 
@@ -646,35 +641,7 @@ export interface QuizQuestion {
   difficulty?: 'easy' | 'medium' | 'hard';
 }
 
-// Interactive elements for lessons
-export interface InteractiveElement {
-  type: 'tooltip' | 'highlight' | 'popup' | 'guide';
-  trigger: string;
-  content: string;
-  position?: string;
-}
 
-// Assessment criteria for assignments
-export interface AssessmentCriterion {
-  criterion: string;
-  weight: number;
-  description: string;
-}
-
-// Wikipedia exercise configuration
-export interface WikipediaExercise {
-  articleTitle?: string;
-  initialContent?: string;
-  targetContent?: string;
-  instructions: string;
-  editingMode: 'sandbox' | 'guided' | 'live';
-  allowedActions: string[];
-  successCriteria: Array<{
-    type: 'contains' | 'format' | 'structure' | 'links' | 'citations';
-    description: string;
-    required: boolean;
-  }>;
-}
 
 // Resource item
 export interface ResourceItem {
@@ -698,11 +665,8 @@ export interface LessonData {
   createdAt: string;
   updatedAt: string;
 
-  // Type-specific fields
+  // Type-specific fields (only for supported lesson types)
   resources?: ResourceItem[];
-  wikipediaExercise?: WikipediaExercise;
-  interactiveElements?: InteractiveElement[];
-  assessmentCriteria?: AssessmentCriterion[];
 }
 
 export interface CreateLessonData {
@@ -714,11 +678,8 @@ export interface CreateLessonData {
   duration?: number;
   order: number;
 
-  // Type-specific fields
+  // Type-specific fields (only for supported lesson types)
   resources?: ResourceItem[];
-  wikipediaExercise?: WikipediaExercise;
-  interactiveElements?: InteractiveElement[];
-  assessmentCriteria?: AssessmentCriterion[];
 }
 
 // Quiz interfaces

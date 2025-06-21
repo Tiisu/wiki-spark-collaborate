@@ -2,7 +2,7 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2, FileText, Video, HelpCircle, ClipboardList, Zap, FolderOpen, BookOpen } from 'lucide-react';
+import { Loader2, FileText, Video, HelpCircle, ClipboardList, Zap, FolderOpen, BookOpen, CheckCircle, AlertTriangle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,16 +15,13 @@ import { CreateLessonData, LessonData, LessonType } from '@/lib/api';
 import TextLessonForm from '@/components/lesson-forms/TextLessonForm';
 import VideoLessonForm from '@/components/lesson-forms/VideoLessonForm';
 import QuizLessonForm from '@/components/lesson-forms/QuizLessonForm';
-import AssignmentLessonForm from '@/components/lesson-forms/AssignmentLessonForm';
-import InteractiveLessonForm from '@/components/lesson-forms/InteractiveLessonForm';
-import ResourceLessonForm from '@/components/lesson-forms/ResourceLessonForm';
 
 // Enhanced lesson schema to support all lesson types
 const lessonSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200, 'Title too long'),
   description: z.string().optional(),
   content: z.string().min(1, 'Content is required'),
-  type: z.enum(['TEXT', 'VIDEO', 'QUIZ', 'ASSIGNMENT', 'RESOURCE', 'INTERACTIVE_EDITOR', 'WIKIPEDIA_EXERCISE', 'PEER_REVIEW']),
+  type: z.enum(['TEXT', 'VIDEO', 'QUIZ']),
   videoUrl: z.string().url('Invalid URL').optional().or(z.literal('')),
   duration: z.number().min(1, 'Duration must be at least 1 minute').optional(),
   order: z.number().min(1, 'Order must be at least 1'),
@@ -45,18 +42,7 @@ const lessonSchema = z.object({
       description: z.string(),
       required: z.boolean()
     }))
-  }).optional(),
-  interactiveElements: z.array(z.object({
-    type: z.enum(['tooltip', 'highlight', 'popup', 'guide']),
-    trigger: z.string(),
-    content: z.string(),
-    position: z.string().optional()
-  })).optional(),
-  assessmentCriteria: z.array(z.object({
-    criterion: z.string(),
-    weight: z.number(),
-    description: z.string()
-  })).optional()
+  }).optional()
 }).refine((data) => {
   // Custom validation for quiz lessons
   if (data.type === 'QUIZ') {
@@ -104,13 +90,33 @@ interface LessonFormProps {
 }
 
 const lessonTypes = [
-  { value: 'TEXT', label: 'Text Content', icon: FileText, description: 'Rich text lessons with formatting' },
-  { value: 'VIDEO', label: 'Video Lesson', icon: Video, description: 'Video content with notes and transcripts' },
-  { value: 'QUIZ', label: 'Quiz', icon: HelpCircle, description: 'Interactive quizzes with multiple question types' },
-  { value: 'ASSIGNMENT', label: 'Assignment', icon: ClipboardList, description: 'Assignments with assessment criteria' },
-  { value: 'RESOURCE', label: 'Resource Collection', icon: FolderOpen, description: 'Curated collection of learning materials' },
-  { value: 'INTERACTIVE_EDITOR', label: 'Wikipedia Exercise', icon: Zap, description: 'Hands-on Wikipedia editing practice' },
-  { value: 'WIKIPEDIA_EXERCISE', label: 'Advanced Wikipedia Exercise', icon: BookOpen, description: 'Complex Wikipedia editing scenarios' },
+  {
+    value: 'TEXT',
+    label: 'Text Content',
+    icon: FileText,
+    description: 'Rich text lessons with formatting and multimedia',
+    color: 'lesson-text',
+    bgColor: 'bg-green-50 dark:bg-green-950/20',
+    borderColor: 'border-green-200 dark:border-green-800'
+  },
+  {
+    value: 'VIDEO',
+    label: 'Video Lesson',
+    icon: Video,
+    description: 'Video content with interactive elements and transcripts',
+    color: 'lesson-video',
+    bgColor: 'bg-purple-50 dark:bg-purple-950/20',
+    borderColor: 'border-purple-200 dark:border-purple-800'
+  },
+  {
+    value: 'QUIZ',
+    label: 'Interactive Quiz',
+    icon: HelpCircle,
+    description: 'Engaging quizzes with multiple question types and feedback',
+    color: 'lesson-quiz',
+    bgColor: 'bg-orange-50 dark:bg-orange-950/20',
+    borderColor: 'border-orange-200 dark:border-orange-800'
+  },
 ];
 
 const LessonForm: React.FC<LessonFormProps> = ({
@@ -140,10 +146,7 @@ const LessonForm: React.FC<LessonFormProps> = ({
       videoUrl: lesson?.videoUrl || '',
       duration: lesson?.duration || undefined,
       order: lesson?.order || Math.max(...existingOrders, 0) + 1,
-      resources: lesson?.resources || [],
-      wikipediaExercise: lesson?.wikipediaExercise,
-      interactiveElements: lesson?.interactiveElements || [],
-      assessmentCriteria: lesson?.assessmentCriteria || []
+      resources: lesson?.resources || []
     }
   });
 
@@ -242,13 +245,6 @@ const LessonForm: React.FC<LessonFormProps> = ({
         return <VideoLessonForm {...commonProps} />;
       case 'QUIZ':
         return <QuizLessonForm {...commonProps} />;
-      case 'ASSIGNMENT':
-        return <AssignmentLessonForm {...commonProps} />;
-      case 'RESOURCE':
-        return <ResourceLessonForm {...commonProps} />;
-      case 'INTERACTIVE_EDITOR':
-      case 'WIKIPEDIA_EXERCISE':
-        return <InteractiveLessonForm {...commonProps} />;
       default:
         return null;
     }
@@ -298,15 +294,22 @@ const LessonForm: React.FC<LessonFormProps> = ({
                   {lessonTypes.map((type) => {
                     const Icon = type.icon;
                     return (
-                      <SelectItem key={type.value} value={type.value}>
-                        <div className="flex flex-col items-start">
-                          <div className="flex items-center gap-2">
-                            <Icon className="h-4 w-4" />
-                            {type.label}
+                      <SelectItem key={type.value} value={type.value} className="p-4">
+                        <div className="flex items-start gap-3 w-full">
+                          <div className={cn(
+                            "p-2 rounded-lg",
+                            type.bgColor
+                          )}>
+                            <Icon className={cn("h-5 w-5", `text-${type.color}`)} />
                           </div>
-                          <span className="text-xs text-muted-foreground">
-                            {type.description}
-                          </span>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm">
+                              {type.label}
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                              {type.description}
+                            </div>
+                          </div>
                         </div>
                       </SelectItem>
                     );

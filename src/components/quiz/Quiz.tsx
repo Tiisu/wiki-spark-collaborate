@@ -4,15 +4,16 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { QuizQuestion, QuizQuestion as QuizQuestionComponent } from './QuizQuestion';
-import { 
-  Clock, 
-  CheckCircle, 
-  XCircle, 
+import {
+  Clock,
+  CheckCircle,
+  XCircle,
   Trophy,
   RotateCcw,
   ArrowLeft,
   ArrowRight,
-  AlertTriangle
+  AlertTriangle,
+  HelpCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -51,7 +52,19 @@ export function Quiz({ quiz, onComplete, onRetry, previousAttempt, className }: 
   );
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [quizResult, setQuizResult] = useState<QuizAttempt | null>(null);
-  const [startTime] = useState(Date.now());
+  const [startTime, setStartTime] = useState(Date.now());
+
+  // Reset quiz state when starting fresh (no previousAttempt)
+  useEffect(() => {
+    if (!previousAttempt) {
+      setCurrentQuestionIndex(0);
+      setAnswers({});
+      setTimeRemaining(quiz.timeLimit ? quiz.timeLimit * 60 : null);
+      setIsSubmitted(false);
+      setQuizResult(null);
+      setStartTime(Date.now());
+    }
+  }, [previousAttempt, quiz.timeLimit]);
 
   // Timer effect
   useEffect(() => {
@@ -69,6 +82,15 @@ export function Quiz({ quiz, onComplete, onRetry, previousAttempt, className }: 
 
     return () => clearInterval(timer);
   }, [timeRemaining, isSubmitted]);
+
+  const resetQuiz = () => {
+    setCurrentQuestionIndex(0);
+    setAnswers({});
+    setTimeRemaining(quiz.timeLimit ? quiz.timeLimit * 60 : null);
+    setIsSubmitted(false);
+    setQuizResult(null);
+    setStartTime(Date.now());
+  };
 
   const handleAnswerChange = (questionId: string, answer: string | string[]) => {
     setAnswers(prev => ({
@@ -156,9 +178,9 @@ export function Quiz({ quiz, onComplete, onRetry, previousAttempt, className }: 
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  const getAnsweredCount = () => {
-    return Object.keys(answers).filter(questionId => {
-      const answer = answers[questionId];
+  const getAnsweredCount = (answersToCheck = answers) => {
+    return Object.keys(answersToCheck).filter(questionId => {
+      const answer = answersToCheck[questionId];
       return answer && (Array.isArray(answer) ? answer.length > 0 : answer.trim() !== '');
     }).length;
   };
@@ -168,7 +190,7 @@ export function Quiz({ quiz, onComplete, onRetry, previousAttempt, className }: 
   const progressPercentage = (answeredCount / quiz.questions.length) * 100;
 
   // Show results if submitted or if there's a previous attempt to review
-  if (isSubmitted || (previousAttempt && !onRetry)) {
+  if (isSubmitted || previousAttempt) {
     const result = quizResult || previousAttempt!;
     
     return (
@@ -221,7 +243,7 @@ export function Quiz({ quiz, onComplete, onRetry, previousAttempt, className }: 
                 {result.passed ? 'Passed' : 'Failed'}
               </Badge>
               <Badge variant="outline">
-                {answeredCount} of {quiz.questions.length} answered
+                {getAnsweredCount(result.answers)} of {quiz.questions.length} answered
               </Badge>
             </div>
           </div>
@@ -248,7 +270,10 @@ export function Quiz({ quiz, onComplete, onRetry, previousAttempt, className }: 
           {/* Action Buttons */}
           <div className="flex justify-center space-x-4">
             {!result.passed && onRetry && (
-              <Button onClick={onRetry} className="flex items-center space-x-2">
+              <Button onClick={() => {
+                resetQuiz();
+                onRetry();
+              }} className="flex items-center space-x-2">
                 <RotateCcw className="h-4 w-4" />
                 <span>Retake Quiz</span>
               </Button>
@@ -261,36 +286,61 @@ export function Quiz({ quiz, onComplete, onRetry, previousAttempt, className }: 
 
   return (
     <Card className={cn("w-full", className)}>
-      <CardHeader>
-        <div className="space-y-4">
+      <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-t-lg">
+        <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-xl">{quiz.title}</CardTitle>
+            <div className="flex items-center space-x-4">
+              <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
+                <HelpCircle className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                  {quiz.title}
+                </CardTitle>
+                {quiz.description && (
+                  <p className="text-muted-foreground mt-1">{quiz.description}</p>
+                )}
+              </div>
+            </div>
             {timeRemaining !== null && (
-              <Badge 
-                variant={timeRemaining < 300 ? "destructive" : "outline"}
-                className="flex items-center space-x-1"
-              >
-                <Clock className="h-3 w-3" />
+              <div className={cn(
+                "flex items-center space-x-2 px-4 py-2 rounded-xl font-mono text-lg font-semibold shadow-sm",
+                timeRemaining <= 300
+                  ? "bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400"
+                  : "bg-white/80 text-muted-foreground dark:bg-gray-800/80"
+              )}>
+                <Clock className="h-5 w-5" />
                 <span>{formatTime(timeRemaining)}</span>
-              </Badge>
+              </div>
             )}
           </div>
 
-          {quiz.description && (
-            <p className="text-muted-foreground">{quiz.description}</p>
-          )}
-
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm text-muted-foreground">
-              <span>Progress</span>
-              <span>{answeredCount} of {quiz.questions.length} answered</span>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium text-muted-foreground">Quiz Progress</span>
+              <span className="text-sm font-semibold text-foreground">
+                {answeredCount} of {quiz.questions.length} completed
+              </span>
             </div>
-            <Progress value={progressPercentage} className="h-2" />
+            <div className="relative">
+              <Progress value={progressPercentage} className="h-3 bg-gray-200 dark:bg-gray-700" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-xs font-medium text-white drop-shadow-sm">
+                  {Math.round(progressPercentage)}%
+                </span>
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>Passing Score: {quiz.passingScore}%</span>
-            <span>Question {currentQuestionIndex + 1} of {quiz.questions.length}</span>
+          <div className="flex items-center justify-between p-4 bg-white/60 dark:bg-gray-800/60 rounded-lg backdrop-blur-sm">
+            <div className="flex items-center space-x-2">
+              <Trophy className="h-4 w-4 text-yellow-600" />
+              <span className="text-sm font-medium">Passing Score: {quiz.passingScore}%</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+              <span className="text-sm font-medium">Question {currentQuestionIndex + 1} of {quiz.questions.length}</span>
+            </div>
           </div>
         </div>
       </CardHeader>
@@ -306,30 +356,48 @@ export function Quiz({ quiz, onComplete, onRetry, previousAttempt, className }: 
         />
 
         {/* Navigation */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
           <Button
             variant="outline"
             onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
             disabled={currentQuestionIndex === 0}
-            className="flex items-center space-x-2"
+            className="flex items-center space-x-2 px-6 py-3 h-auto"
           >
             <ArrowLeft className="h-4 w-4" />
             <span>Previous</span>
           </Button>
 
-          <div className="flex space-x-2">
+          <div className="flex items-center space-x-4">
+            {/* Question indicators */}
+            <div className="hidden md:flex items-center space-x-1">
+              {quiz.questions.map((_, index) => (
+                <div
+                  key={index}
+                  className={cn(
+                    "w-3 h-3 rounded-full transition-all duration-200",
+                    index === currentQuestionIndex
+                      ? "bg-blue-500 scale-125"
+                      : answers[quiz.questions[index].id]
+                      ? "bg-green-500"
+                      : "bg-gray-300 dark:bg-gray-600"
+                  )}
+                />
+              ))}
+            </div>
+
             {currentQuestionIndex < quiz.questions.length - 1 ? (
               <Button
                 onClick={() => setCurrentQuestionIndex(prev => Math.min(quiz.questions.length - 1, prev + 1))}
-                className="flex items-center space-x-2"
+                disabled={!answers[currentQuestion.id] || answers[currentQuestion.id] === '' || (Array.isArray(answers[currentQuestion.id]) && answers[currentQuestion.id].length === 0)}
+                className="flex items-center space-x-2 px-6 py-3 h-auto bg-blue-600 hover:bg-blue-700"
               >
-                <span>Next</span>
+                <span>Next Question</span>
                 <ArrowRight className="h-4 w-4" />
               </Button>
             ) : (
               <Button
                 onClick={handleSubmit}
-                className="flex items-center space-x-2"
+                className="flex items-center space-x-2 px-6 py-3 h-auto bg-green-600 hover:bg-green-700"
                 disabled={answeredCount === 0}
               >
                 <CheckCircle className="h-4 w-4" />
@@ -339,14 +407,27 @@ export function Quiz({ quiz, onComplete, onRetry, previousAttempt, className }: 
           </div>
         </div>
 
-        {/* Warning for unanswered questions */}
+        {/* Warning for unanswered current question */}
+        {currentQuestionIndex < quiz.questions.length - 1 && (!answers[currentQuestion.id] || answers[currentQuestion.id] === '' || (Array.isArray(answers[currentQuestion.id]) && answers[currentQuestion.id].length === 0)) && (
+          <div className="flex items-start space-x-2 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+            <AlertTriangle className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+            <div>
+              <h4 className="font-medium text-blue-900 dark:text-blue-100">Answer Required</h4>
+              <p className="text-sm text-blue-800 dark:text-blue-200">
+                Please answer this question before proceeding to the next one.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Warning for unanswered questions at final question */}
         {currentQuestionIndex === quiz.questions.length - 1 && answeredCount < quiz.questions.length && (
           <div className="flex items-start space-x-2 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
             <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
             <div>
               <h4 className="font-medium text-yellow-900 dark:text-yellow-100">Incomplete Quiz</h4>
               <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                You have {quiz.questions.length - answeredCount} unanswered question{quiz.questions.length - answeredCount !== 1 ? 's' : ''}. 
+                You have {quiz.questions.length - answeredCount} unanswered question{quiz.questions.length - answeredCount !== 1 ? 's' : ''}.
                 You can still submit, but unanswered questions will be marked as incorrect.
               </p>
             </div>

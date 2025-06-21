@@ -6,8 +6,6 @@ import { Progress } from '@/components/ui/progress';
 import { VideoPlayer } from '@/components/ui/video-player';
 import { QuizModal } from '@/components/quiz/QuizModal';
 import { QuizQuestion } from '@/components/quiz/QuizQuestion';
-import { InteractiveExercise } from './InteractiveExercise';
-import { AssignmentSubmission } from './AssignmentSubmission';
 import {
   Play,
   CheckCircle,
@@ -26,9 +24,7 @@ import { cn } from '@/lib/utils';
 export enum LessonType {
   TEXT = 'TEXT',
   VIDEO = 'VIDEO',
-  INTERACTIVE = 'INTERACTIVE',
-  QUIZ = 'QUIZ',
-  ASSIGNMENT = 'ASSIGNMENT'
+  QUIZ = 'QUIZ'
 }
 
 interface QuizData {
@@ -219,53 +215,76 @@ export function LessonViewer({
   return (
     <div className={cn("space-y-6", className)}>
       {/* Lesson Header */}
-      <Card>
-        <CardHeader>
+      <Card className="overflow-hidden border-0 shadow-lg">
+        <CardHeader className="bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-blue-950/20 dark:via-background dark:to-indigo-950/20 pb-8">
           <div className="flex items-start justify-between">
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <Badge className={getLessonTypeColor(lesson.type)}>
+            <div className="space-y-4 flex-1">
+              <div className="flex items-center space-x-3 flex-wrap gap-2">
+                <Badge className={cn(
+                  "px-3 py-1.5 text-sm font-medium shadow-sm",
+                  getLessonTypeColor(lesson.type)
+                )}>
                   {getLessonIcon(lesson.type)}
-                  <span className="ml-1">{lesson.type}</span>
+                  <span className="ml-2">{lesson.type}</span>
                 </Badge>
                 {lesson.duration && (
-                  <Badge variant="outline" className="flex items-center space-x-1">
-                    <Clock className="h-3 w-3" />
-                    <span>{formatDuration(lesson.duration)}</span>
+                  <Badge variant="outline" className="flex items-center space-x-2 px-3 py-1.5 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
+                    <Clock className="h-4 w-4" />
+                    <span className="font-medium">{formatDuration(lesson.duration)}</span>
                   </Badge>
                 )}
                 {lesson.quiz && (
                   <Badge
                     variant="outline"
                     className={cn(
-                      "flex items-center space-x-1",
-                      quizAttempt?.passed && "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
+                      "flex items-center space-x-2 px-3 py-1.5 backdrop-blur-sm",
+                      quizAttempt?.passed
+                        ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"
+                        : "bg-white/80 dark:bg-gray-800/80"
                     )}
                   >
-                    <Trophy className="h-3 w-3" />
-                    <span>
+                    <Trophy className="h-4 w-4" />
+                    <span className="font-medium">
                       {quizAttempt?.passed ? 'Quiz Passed' : 'Has Quiz'}
                     </span>
                   </Badge>
                 )}
                 {isCompleted && (
-                  <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    Completed
+                  <Badge className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 py-1.5 shadow-lg">
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    <span className="font-medium">Completed</span>
                   </Badge>
                 )}
               </div>
-              <CardTitle className="text-2xl">{lesson.title}</CardTitle>
+              <div className="space-y-2">
+                <CardTitle className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent leading-tight">
+                  {lesson.title}
+                </CardTitle>
+                {lesson.description && (
+                  <p className="text-lg text-muted-foreground leading-relaxed max-w-3xl">
+                    {lesson.description}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
-          
-          {/* Progress Bar */}
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm text-muted-foreground">
-              <span>Progress</span>
-              <span>{Math.round(currentProgress)}%</span>
+
+          {/* Enhanced Progress Bar */}
+          <div className="space-y-3 mt-6">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium text-muted-foreground">Lesson Progress</span>
+              <span className="text-sm font-bold text-foreground bg-white/80 dark:bg-gray-800/80 px-3 py-1 rounded-full backdrop-blur-sm">
+                {Math.round(currentProgress)}% Complete
+              </span>
             </div>
-            <Progress value={currentProgress} className="h-2" />
+            <div className="relative">
+              <Progress value={currentProgress} className="h-3 bg-gray-200 dark:bg-gray-700" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-xs font-medium text-white drop-shadow-sm">
+                  {Math.round(currentProgress)}%
+                </span>
+              </div>
+            </div>
           </div>
         </CardHeader>
       </Card>
@@ -298,10 +317,7 @@ export function LessonViewer({
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div
-                className="prose prose-slate dark:prose-invert max-w-none mb-6"
-                dangerouslySetInnerHTML={{ __html: lesson.content }}
-              />
+              {/* Don't display raw JSON content for quiz lessons */}
               <div className="bg-muted/50 rounded-lg p-6 text-center">
                 <HelpCircle className="h-12 w-12 mx-auto mb-4 text-purple-600" />
                 <h3 className="text-lg font-semibold mb-2">Ready to Test Your Knowledge?</h3>
@@ -319,66 +335,34 @@ export function LessonViewer({
             </div>
           </CardContent>
         </Card>
-      ) : lesson.type === LessonType.INTERACTIVE ? (
-        // Interactive Lesson - Hands-on Activities
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Play className="h-5 w-5" />
-                <span>Interactive Learning</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+      ) : lesson.type === LessonType.VIDEO ? (
+        // Video Lesson - Video Content with Player
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Video className="h-5 w-5" />
+              <span>Video Lesson</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {lesson.videoUrl && (
+                <VideoPlayer
+                  src={lesson.videoUrl}
+                  title={lesson.title}
+                  onProgress={(progress) => {
+                    // Handle video progress
+                    console.log('Video progress:', progress);
+                  }}
+                />
+              )}
               <div
                 className="prose prose-slate dark:prose-invert max-w-none"
                 dangerouslySetInnerHTML={{ __html: lesson.content }}
               />
-            </CardContent>
-          </Card>
-
-          <InteractiveExercise
-            title="Interactive Exercise"
-            description="Complete this hands-on exercise to practice what you've learned in this lesson."
-            onComplete={() => {
-              if (!isCompleted) {
-                handleComplete();
-              }
-            }}
-          />
-        </div>
-      ) : lesson.type === LessonType.ASSIGNMENT ? (
-        // Assignment Lesson - Task-based Learning
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <FileText className="h-5 w-5" />
-                <span>Assignment Instructions</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div
-                className="prose prose-slate dark:prose-invert max-w-none"
-                dangerouslySetInnerHTML={{ __html: lesson.content }}
-              />
-            </CardContent>
-          </Card>
-
-          <AssignmentSubmission
-            lessonId={lesson.id}
-            title={lesson.title}
-            description="Complete this assignment to demonstrate your understanding of the lesson material."
-            dueDate={lesson.dueDate}
-            onSubmit={(submission) => {
-              console.log('Assignment submitted:', submission);
-              if (!isCompleted) {
-                handleComplete();
-              }
-            }}
-            existingSubmission={lesson.assignmentSubmission}
-          />
-        </div>
+            </div>
+          </CardContent>
+        </Card>
       ) : (
         // Text/Default Lesson - Standard Content
         <Card>
@@ -457,13 +441,7 @@ export function LessonViewer({
                 </Button>
               )}
 
-              {/* Interactive lessons - special completion */}
-              {lesson.type === LessonType.INTERACTIVE && !isCompleted && (
-                <Button onClick={handleComplete} className="bg-orange-600 hover:bg-orange-700">
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Complete Interactive Lesson
-                </Button>
-              )}
+
 
               {/* Assignment lessons - special completion */}
               {lesson.type === LessonType.ASSIGNMENT && !isCompleted && (
