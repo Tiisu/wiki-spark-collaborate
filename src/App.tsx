@@ -26,6 +26,7 @@ import Achievements from "./pages/Achievements";
 import Certificates from "./pages/Certificates";
 import ProfileSettings from "./pages/ProfileSettings";
 import AccountSettings from "./pages/AccountSettings";
+import { CertificateVerificationPage } from "./pages/CertificateVerificationPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -170,7 +171,7 @@ const App = () => (
               />
               <Route
                 path="/verify/:verificationCode"
-                element={<Certificates />}
+                element={<CertificateVerificationPage />}
               />
               <Route
                 path="/profile"

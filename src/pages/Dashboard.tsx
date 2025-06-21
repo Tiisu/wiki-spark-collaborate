@@ -14,6 +14,7 @@ import { WikipediaLearningDashboard } from '@/components/dashboard/WikipediaLear
 import StudentProgress from '@/components/student/StudentProgress';
 import EnrolledCourses from '@/components/student/EnrolledCourses';
 import StudyPlan from '@/components/student/StudyPlan';
+import { CertificateDashboard } from '@/components/certificates/CertificateDashboard';
 import { RoleDebugger } from '@/components/debug/RoleDebugger';
 
 const StudentDashboard = () => {
@@ -67,13 +68,14 @@ const StudentDashboard = () => {
                 <SelectItem value="overview">📊 Overview</SelectItem>
                 <SelectItem value="courses">📚 My Courses</SelectItem>
                 <SelectItem value="progress">📈 Progress</SelectItem>
+                <SelectItem value="certificates">🏆 Certificates</SelectItem>
                 <SelectItem value="study-plan">📅 Study Plan</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {/* Desktop Tab Navigation */}
-          <TabsList className="hidden sm:grid w-full grid-cols-2 lg:grid-cols-4 h-auto p-1">
+          <TabsList className="hidden sm:grid w-full grid-cols-2 lg:grid-cols-5 h-auto p-1">
             <TabsTrigger value="overview" className="text-xs sm:text-sm py-2">
               <span className="hidden lg:inline">📊 </span>Overview
             </TabsTrigger>
@@ -82,6 +84,9 @@ const StudentDashboard = () => {
             </TabsTrigger>
             <TabsTrigger value="progress" className="text-xs sm:text-sm py-2">
               <span className="hidden lg:inline">📈 </span>Progress
+            </TabsTrigger>
+            <TabsTrigger value="certificates" className="text-xs sm:text-sm py-2">
+              <span className="hidden lg:inline">🏆 </span>Certificates
             </TabsTrigger>
             <TabsTrigger value="study-plan" className="text-xs sm:text-sm py-2">
               <span className="hidden lg:inline">📅 </span>Plan
@@ -98,6 +103,10 @@ const StudentDashboard = () => {
 
           <TabsContent value="progress">
             <StudentProgress detailed={true} />
+          </TabsContent>
+
+          <TabsContent value="certificates">
+            <CertificateDashboard />
           </TabsContent>
 
           <TabsContent value="study-plan">

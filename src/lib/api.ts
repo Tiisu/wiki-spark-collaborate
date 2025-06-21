@@ -793,6 +793,9 @@ export interface Certificate {
   user: string;
   course: string;
   verificationCode: string;
+  certificateId: string;
+  status: 'PENDING' | 'GENERATED' | 'DOWNLOADED' | 'REVOKED';
+  template: 'STANDARD' | 'PREMIUM' | 'CUSTOM';
   issuedAt: string;
   completionDate: string;
   finalScore?: number;
@@ -800,10 +803,19 @@ export interface Certificate {
   instructorName: string;
   courseName: string;
   courseLevel: string;
+  courseCategory: string;
+  studentName: string;
+  studentEmail: string;
   certificateUrl?: string;
+  pdfPath?: string;
+  pdfSize?: number;
+  downloadCount: number;
+  lastDownloadedAt?: string;
+  shareableUrl?: string;
   isValid: boolean;
   revokedAt?: string;
   revokedReason?: string;
+  revokedBy?: string;
   metadata: {
     totalLessons: number;
     completedLessons: number;
@@ -811,6 +823,18 @@ export interface Certificate {
     passedQuizzes: number;
     averageQuizScore?: number;
     achievements: string[];
+    courseDuration: number;
+    enrollmentDate: string;
+    completionRate: number;
+    skillsAcquired: string[];
+    wikipediaProject: string;
+  };
+  verification: {
+    qrCode?: string;
+    digitalSignature?: string;
+    verificationUrl: string;
+    lastVerifiedAt?: string;
+    verificationCount: number;
   };
   createdAt: string;
   updatedAt: string;
@@ -1289,6 +1313,161 @@ export const certificateApi = {
     const response = await apiRequest<{ downloadUrl: string }>(
       `/api/certificates/${certificateId}/download`
     );
+    return response.data!;
+  },
+
+  // Enhanced certificate management methods
+
+  // Regenerate certificate PDF (admin only)
+  regenerateCertificatePDF: async (certificateId: string): Promise<{ success: boolean; message: string; certificate: Certificate }> => {
+    const response = await apiRequest<{ success: boolean; message: string; certificate: Certificate }>(
+      `/api/certificates/${certificateId}/regenerate`,
+      { method: 'POST' }
+    );
+    return response.data!;
+  },
+
+  // Bulk regenerate certificate PDFs (admin only)
+  bulkRegeneratePDFs: async (courseId?: string, template?: string): Promise<{
+    success: number;
+    failed: number;
+    errors: string[];
+  }> => {
+    const response = await apiRequest<{
+      success: number;
+      failed: number;
+      errors: string[];
+    }>('/api/certificates/bulk/regenerate', {
+      method: 'POST',
+      body: JSON.stringify({ courseId, template })
+    });
+    return response.data!;
+  },
+
+  // Retry failed certificate generations (admin only)
+  retryFailedCertificates: async (maxRetries: number = 3): Promise<{
+    processed: number;
+    successful: number;
+    failed: number;
+    errors: string[];
+  }> => {
+    const response = await apiRequest<{
+      processed: number;
+      successful: number;
+      failed: number;
+      errors: string[];
+    }>('/api/certificates/retry-failed', {
+      method: 'POST',
+      body: JSON.stringify({ maxRetries })
+    });
+    return response.data!;
+  },
+
+  // Get certificate analytics (admin only)
+  getCertificateAnalytics: async (startDate?: string, endDate?: string): Promise<{
+    analytics: {
+      totalCertificates: number;
+      certificatesThisMonth: number;
+      certificatesThisWeek: number;
+      topCourses: Array<{ courseName: string; count: number }>;
+      statusBreakdown: Record<string, number>;
+      templateUsage: Record<string, number>;
+      averageGenerationTime: number;
+      downloadStats: {
+        totalDownloads: number;
+        averageDownloadsPerCertificate: number;
+        mostDownloadedCertificate: string;
+      };
+    };
+  }> => {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+
+    const response = await apiRequest<{
+      analytics: {
+        totalCertificates: number;
+        certificatesThisMonth: number;
+        certificatesThisWeek: number;
+        topCourses: Array<{ courseName: string; count: number }>;
+        statusBreakdown: Record<string, number>;
+        templateUsage: Record<string, number>;
+        averageGenerationTime: number;
+        downloadStats: {
+          totalDownloads: number;
+          averageDownloadsPerCertificate: number;
+          mostDownloadedCertificate: string;
+        };
+      };
+    }>(`/api/certificates/analytics?${params.toString()}`);
+    return response.data!;
+  },
+
+  // Trigger automatic certificate generation
+  triggerAutomaticGeneration: async (courseId: string, userId?: string): Promise<{
+    generated: boolean;
+    certificate?: Certificate;
+    reason?: string;
+  }> => {
+    const response = await apiRequest<{
+      generated: boolean;
+      certificate?: Certificate;
+      reason?: string;
+    }>(`/api/certificates/trigger/${courseId}`, {
+      method: 'POST',
+      body: JSON.stringify({ userId })
+    });
+    return response.data!;
+  },
+
+  // Get detailed certificate eligibility
+  getDetailedEligibility: async (courseId: string, userId?: string): Promise<{
+    eligibility: {
+      eligible: boolean;
+      reason?: string;
+      requirements: {
+        courseCompleted: boolean;
+        requiredQuizzesPassed: boolean;
+        minimumTimeSpent: boolean;
+        minimumScore?: number;
+        hasValidEnrollment: boolean;
+        noDuplicateCertificate: boolean;
+      };
+      details: {
+        progress: number;
+        timeSpent: number;
+        averageScore?: number;
+        requiredQuizzes: number;
+        passedQuizzes: number;
+        missingRequirements: string[];
+      };
+    };
+  }> => {
+    const params = new URLSearchParams();
+    if (userId) params.append('userId', userId);
+
+    const response = await apiRequest<{
+      eligibility: {
+        eligible: boolean;
+        reason?: string;
+        requirements: {
+          courseCompleted: boolean;
+          requiredQuizzesPassed: boolean;
+          minimumTimeSpent: boolean;
+          minimumScore?: number;
+          hasValidEnrollment: boolean;
+          noDuplicateCertificate: boolean;
+        };
+        details: {
+          progress: number;
+          timeSpent: number;
+          averageScore?: number;
+          requiredQuizzes: number;
+          passedQuizzes: number;
+          missingRequirements: string[];
+        };
+      };
+    }>(`/api/certificates/eligibility-detailed/${courseId}?${params.toString()}`);
     return response.data!;
   },
 };

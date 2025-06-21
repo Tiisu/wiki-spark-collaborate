@@ -18,6 +18,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { useAuth } from '@/contexts/AuthContext';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 import {
   BookOpen,
   Home,
@@ -29,8 +30,7 @@ import {
   LogOut,
   Menu,
   X,
-  ChevronDown,
-  Bell
+  ChevronDown
 } from 'lucide-react';
 
 const Header = () => {
@@ -155,11 +155,8 @@ const Header = () => {
 
             {isAuthenticated && user ? (
               <>
-                {/* Notifications */}
-                <Button variant="ghost" size="sm" className="relative p-2 hover:bg-white/60 dark:hover:bg-gray-800/60 rounded-xl">
-                  <Bell className="h-4 w-4" />
-                  <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full text-xs"></span>
-                </Button>
+                {/* Notification Bell */}
+                <NotificationBell />
 
                 {/* Enhanced User Menu */}
                 <DropdownMenu>

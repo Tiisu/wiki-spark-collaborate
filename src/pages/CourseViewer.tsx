@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { LessonViewer, LessonType } from '@/components/course/LessonViewer';
+import { CertificateEligibilityChecker } from '@/components/certificates/CertificateEligibilityChecker';
 import Header from '@/components/Header';
 import {
   BookOpen,
@@ -476,6 +477,18 @@ const CourseViewer = () => {
     }
   };
 
+  // Calculate course completion
+  const isCourseCompleted = () => {
+    if (!allLessons.length) return false;
+    return allLessons.every(lesson => lesson.isCompleted);
+  };
+
+  const courseCompletionPercentage = () => {
+    if (!allLessons.length) return 0;
+    const completedLessons = allLessons.filter(lesson => lesson.isCompleted).length;
+    return Math.round((completedLessons / allLessons.length) * 100);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background to-muted">
@@ -636,7 +649,7 @@ const CourseViewer = () => {
           </div>
 
           {/* Main Content - Lesson Viewer */}
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-3 space-y-6">
             {selectedLesson ? (
               <LessonViewer
                 lesson={selectedLesson}
@@ -658,6 +671,20 @@ const CourseViewer = () => {
                   </div>
                 </CardContent>
               </Card>
+            )}
+
+            {/* Certificate Eligibility Checker - Show when course progress is significant */}
+            {courseCompletionPercentage() >= 80 && (
+              <CertificateEligibilityChecker
+                courseId={courseId!}
+                onCertificateGenerated={(certificate) => {
+                  toast({
+                    title: "🎉 Certificate Generated!",
+                    description: `Congratulations! Your certificate for "${course?.title}" has been generated.`,
+                  });
+                  // Optionally redirect to certificates page or show download option
+                }}
+              />
             )}
           </div>
         </div>

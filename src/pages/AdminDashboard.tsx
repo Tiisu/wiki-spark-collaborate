@@ -24,6 +24,8 @@ import VideoUpload from '@/components/admin/VideoUpload';
 import UserManagement from '@/components/admin/UserManagement';
 import Analytics from '@/components/admin/Analytics';
 import SystemHealth from '@/components/admin/SystemHealth';
+import { CertificateAnalytics } from '@/components/admin/CertificateAnalytics';
+import { CertificateManagement } from '@/components/admin/CertificateManagement';
 import { RoleDebugger } from '@/components/debug/RoleDebugger';
 
 const AdminDashboard = () => {
@@ -61,13 +63,15 @@ const AdminDashboard = () => {
                 <SelectItem value="create-course">➕ Create Course</SelectItem>
                 <SelectItem value="upload">📤 Upload Media</SelectItem>
                 <SelectItem value="users">👥 Users</SelectItem>
+                <SelectItem value="certificates">🏆 Certificates</SelectItem>
+                <SelectItem value="cert-analytics">📈 Cert Analytics</SelectItem>
                 <SelectItem value="system">⚙️ System</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {/* Desktop Tab Navigation */}
-          <TabsList className="hidden sm:grid w-full grid-cols-3 lg:grid-cols-6 h-auto p-1">
+          <TabsList className="hidden sm:grid w-full grid-cols-4 lg:grid-cols-8 h-auto p-1">
             <TabsTrigger value="overview" className="text-xs sm:text-sm py-2">
               <span className="hidden lg:inline">📊 </span>Overview
             </TabsTrigger>
@@ -82,6 +86,12 @@ const AdminDashboard = () => {
             </TabsTrigger>
             <TabsTrigger value="users" className="text-xs sm:text-sm py-2">
               <span className="hidden lg:inline">👥 </span>Users
+            </TabsTrigger>
+            <TabsTrigger value="certificates" className="text-xs sm:text-sm py-2">
+              <span className="hidden lg:inline">🏆 </span>Certificates
+            </TabsTrigger>
+            <TabsTrigger value="cert-analytics" className="text-xs sm:text-sm py-2">
+              <span className="hidden lg:inline">📈 </span>Analytics
             </TabsTrigger>
             <TabsTrigger value="system" className="text-xs sm:text-sm py-2">
               <span className="hidden lg:inline">⚙️ </span>System
@@ -158,6 +168,14 @@ const AdminDashboard = () => {
 
           <TabsContent value="users">
             <UserManagement />
+          </TabsContent>
+
+          <TabsContent value="certificates">
+            <CertificateManagement />
+          </TabsContent>
+
+          <TabsContent value="cert-analytics">
+            <CertificateAnalytics />
           </TabsContent>
 
           <TabsContent value="system">

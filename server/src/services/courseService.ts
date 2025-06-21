@@ -5,6 +5,7 @@ import Enrollment, { IEnrollment, EnrollmentStatus } from '../models/Enrollment'
 import Progress, { IProgress, ProgressStatus } from '../models/Progress';
 import achievementService from './achievementService';
 import certificateService from './certificateService';
+import completionTrackingService from './completionTrackingService';
 import logger from '../utils/logger';
 import { CreateCourseRequestBody, UpdateCourseRequestBody } from '../types';
 
@@ -386,7 +387,7 @@ class CourseService {
     }
   }
 
-  // Update lesson progress
+  // Update lesson progress with enhanced completion tracking
   async updateProgress(userId: string, lessonId: string, progressData: {
     timeSpent?: number;
     completionPercentage?: number;
@@ -406,23 +407,19 @@ class CourseService {
         throw new Error('User is not enrolled in this course');
       }
 
-      // Update or create progress
-      const progress = await Progress.findOneAndUpdate(
-        { user: userId, lesson: lessonId },
-        {
-          $set: {
-            ...progressData,
-            course: lesson.course,
-            ...(progressData.completionPercentage === 100 && { completedAt: new Date() })
-          }
-        },
-        { new: true, upsert: true, runValidators: true }
+      // Use the enhanced completion tracking service
+      const { progress, completionResult } = await completionTrackingService.updateLessonProgress(
+        userId,
+        lessonId,
+        progressData
       );
 
-      // Update enrollment progress
-      await this.updateEnrollmentProgress(userId, lesson.course.toString());
+      // Update enrollment progress if lesson was completed
+      if (completionResult.isComplete) {
+        await this.updateEnrollmentProgress(userId, lesson.course.toString());
+      }
 
-      logger.info(`Progress updated for user ${userId} in lesson ${lessonId}`);
+      logger.info(`Progress updated for user ${userId} in lesson ${lessonId}. Complete: ${completionResult.isComplete}`);
       return progress;
     } catch (error) {
       logger.error('Failed to update progress:', error);
@@ -448,22 +445,22 @@ class CourseService {
     }
   }
 
-  // Update overall enrollment progress
+  // Update overall enrollment progress with enhanced tracking
   private async updateEnrollmentProgress(userId: string, courseId: string): Promise<void> {
     try {
-      // Get total lessons in course
-      const totalLessons = await Lesson.countDocuments({ course: courseId, isPublished: true });
+      // Use the enhanced completion tracking service to get detailed course completion
+      const courseCompletion = await completionTrackingService.calculateCourseCompletion(userId, courseId);
 
-      // Get completed lessons
-      const completedLessons = await Progress.countDocuments({
+      const progress = courseCompletion.progress;
+      const status = courseCompletion.isComplete ? EnrollmentStatus.COMPLETED : EnrollmentStatus.ACTIVE;
+      const wasCompleted = courseCompletion.isComplete;
+
+      // Update completed lessons array in enrollment
+      const completedLessons = await Progress.find({
         user: userId,
         course: courseId,
         status: ProgressStatus.COMPLETED
-      });
-
-      const progress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
-      const status = progress === 100 ? EnrollmentStatus.COMPLETED : EnrollmentStatus.ACTIVE;
-      const wasCompleted = progress === 100;
+      }).select('lesson');
 
       const enrollment = await Enrollment.findOneAndUpdate(
         { user: userId, course: courseId },
@@ -471,6 +468,7 @@ class CourseService {
           $set: {
             progress,
             status,
+            completedLessons: completedLessons.map(p => p.lesson),
             ...(wasCompleted && { completedAt: new Date() })
           }
         },
@@ -478,7 +476,7 @@ class CourseService {
       );
 
       // If course was just completed, trigger achievements and certificate generation
-      if (wasCompleted && enrollment) {
+      if (wasCompleted && enrollment && !enrollment.certificateIssued) {
         try {
           // Check and award achievements
           await achievementService.checkAndAwardAchievements(userId);
@@ -495,12 +493,21 @@ class CourseService {
               completionDate: new Date(),
               timeSpent: totalTimeSpent
             });
+
+            // Mark certificate as issued in enrollment
+            await Enrollment.findByIdAndUpdate(enrollment._id, {
+              $set: { certificateIssued: true }
+            });
+
+            logger.info(`Certificate generated for user ${userId} completing course ${courseId}`);
           }
         } catch (achievementError) {
           logger.error('Failed to process course completion rewards:', achievementError);
           // Don't throw error as the main progress update was successful
         }
       }
+
+      logger.info(`Enrollment progress updated for user ${userId} in course ${courseId}: ${progress}%`);
     } catch (error) {
       logger.error('Failed to update enrollment progress:', error);
     }

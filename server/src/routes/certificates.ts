@@ -9,7 +9,13 @@ import {
   revokeCertificate,
   getCertificateStats,
   downloadCertificate,
-  getCertificateTemplate
+  getCertificateTemplate,
+  regenerateCertificatePDF,
+  bulkRegeneratePDFs,
+  retryFailedCertificates,
+  getCertificateAnalytics,
+  triggerAutomaticGeneration,
+  getDetailedEligibility
 } from '../controllers/certificateController';
 import { authenticate, authorize } from '../middleware/auth';
 import { apiLimiter } from '../middleware/rateLimiter';
@@ -302,5 +308,180 @@ router.get('/stats', authenticate, authorize(UserRole.ADMIN, UserRole.SUPER_ADMI
  *         description: Insufficient permissions
  */
 router.get('/template', authenticate, authorize(UserRole.ADMIN, UserRole.SUPER_ADMIN), getCertificateTemplate);
+
+// Enhanced certificate management endpoints
+
+/**
+ * @swagger
+ * /api/certificates/{certificateId}/regenerate:
+ *   post:
+ *     summary: Regenerate certificate PDF (admin only)
+ *     tags: [Certificates]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: certificateId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Certificate PDF regenerated successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Insufficient permissions
+ *       404:
+ *         description: Certificate not found
+ */
+router.post('/:certificateId/regenerate', authenticate, authorize(UserRole.ADMIN, UserRole.SUPER_ADMIN), regenerateCertificatePDF);
+
+/**
+ * @swagger
+ * /api/certificates/bulk/regenerate:
+ *   post:
+ *     summary: Bulk regenerate certificate PDFs (admin only)
+ *     tags: [Certificates]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               courseId:
+ *                 type: string
+ *               template:
+ *                 type: string
+ *                 enum: [STANDARD, PREMIUM, CUSTOM]
+ *     responses:
+ *       200:
+ *         description: Bulk regeneration completed
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Insufficient permissions
+ */
+router.post('/bulk/regenerate', authenticate, authorize(UserRole.ADMIN, UserRole.SUPER_ADMIN), bulkRegeneratePDFs);
+
+/**
+ * @swagger
+ * /api/certificates/retry-failed:
+ *   post:
+ *     summary: Retry failed certificate generations (admin only)
+ *     tags: [Certificates]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               maxRetries:
+ *                 type: number
+ *                 default: 3
+ *     responses:
+ *       200:
+ *         description: Failed certificate retry completed
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Insufficient permissions
+ */
+router.post('/retry-failed', authenticate, authorize(UserRole.ADMIN, UserRole.SUPER_ADMIN), retryFailedCertificates);
+
+/**
+ * @swagger
+ * /api/certificates/analytics:
+ *   get:
+ *     summary: Get certificate analytics (admin only)
+ *     tags: [Certificates]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       200:
+ *         description: Certificate analytics retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Insufficient permissions
+ */
+router.get('/analytics', authenticate, authorize(UserRole.ADMIN, UserRole.SUPER_ADMIN), getCertificateAnalytics);
+
+/**
+ * @swagger
+ * /api/certificates/trigger/{courseId}:
+ *   post:
+ *     summary: Trigger automatic certificate generation
+ *     tags: [Certificates]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               userId:
+ *                 type: string
+ *                 description: User ID (admin only, defaults to current user)
+ *     responses:
+ *       200:
+ *         description: Certificate generation triggered
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Insufficient permissions
+ */
+router.post('/trigger/:courseId', authenticate, triggerAutomaticGeneration);
+
+/**
+ * @swagger
+ * /api/certificates/eligibility-detailed/{courseId}:
+ *   get:
+ *     summary: Get detailed certificate eligibility
+ *     tags: [Certificates]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: userId
+ *         schema:
+ *           type: string
+ *           description: User ID (admin only, defaults to current user)
+ *     responses:
+ *       200:
+ *         description: Detailed eligibility information retrieved
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Insufficient permissions
+ */
+router.get('/eligibility-detailed/:courseId', authenticate, getDetailedEligibility);
 
 export default router;
